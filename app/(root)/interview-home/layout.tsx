@@ -7,7 +7,7 @@ const RootLayout = ( {children} : {children: ReactNode} ) => {
     return (
         <div className="root-layout">
             <nav>
-                <Link href="/" className="flex items-center gap-2">
+                <Link href="/public" className="flex items-center gap-2">
                     <Image src="/logo.svg" alt="Candid Minds" width={38} height={32} />
                     <h2 className="text-primary-100 "> Candid Minds </h2>
                 </Link>
