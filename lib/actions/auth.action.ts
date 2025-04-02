@@ -1,6 +1,6 @@
 "use server";
 
-import { auth, db } from "../../../../../../Users/abirrahman/Downloads/ai_mock_interviews-main/firebase/admin";
+import { auth, db } from "@/firebase/admin";
 import { cookies } from "next/headers";
 
 // Session duration (1 week)
@@ -40,9 +40,7 @@ export async function signUp(params: SignUpParams) {
     // save user to db
     await db.collection("users").doc(uid).set({
       name,
-      email,
-      // profileURL,
-      // resumeURL,
+      email
     });
 
     return {
