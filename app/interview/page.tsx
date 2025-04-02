@@ -38,7 +38,7 @@ const Page = () => {
                     {dummyInterviews.map((interview) => (
                         <InterviewCard {...interview} />
                     ))}
-                    {/*<p> There are no interviews available</p>*/}
+                    {/*<p> There are no interviews available here</p>*/}
                 </div>
             </section>
 
