@@ -5,6 +5,7 @@ import {cn} from "@/lib/utils";
 import {useRouter} from "next/navigation";
 import {useEffect, useState} from "react";
 import { vapi } from '@/lib/vapi.sdk';
+import {interviewer} from "@/constants";
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -76,6 +77,8 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
 
     }
 
+
+
     useEffect(() => {
         if (callStatus === CallStatus.FINISHED){
             if (type === 'generate'){
@@ -85,18 +88,39 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                 handleGenerateFeedback(messages)
             }
         }
-        if(callStatus === CallStatus.FINISHED) router.push('/');
+        if(callStatus === CallStatus.FINISHED) router.push('/interview-main');
     }, [messages, callStatus, type, userId]);
 
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);
 
-        await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
-            variableValues: {
-                username: userName,
-                userid: userId,
+
+        // CASE 1: generating an interview based on user's choice
+        if (type === 'generate'){
+            await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
+                variableValues: {
+                    username: userName,
+                    userid: userId,
+                }
+            })
+        }
+
+        // CASE 2: no need to generate, just ask the questions that are already generated
+        else{
+            let formattedQues = ''
+            if (questions){
+                formattedQues = questions.map((question) => ` - ${question}`).join('\n')
             }
-        })
+
+            await vapi.start(interviewer, {
+                variableValues: {
+                    questions: formattedQues
+                }
+            })
+
+        }
+
+
     }
 
     const handleDisconnect = async () => {

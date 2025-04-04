@@ -83,8 +83,8 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt}: Int
                         <Link
                             href={
                                 feedback
-                                    ? `/interview/${id}/feedback`
-                                    : `/app/(root)/interview-home/${id}`
+                                    ? `/interview-main/${id}/feedback`
+                                    : `interview-main/${id}`
                             }
                         >
                             {feedback ? "Check Feedback" : "View Interview"}
