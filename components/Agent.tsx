@@ -18,7 +18,7 @@ interface SavedMessage {
     content: string;
 }
 
-const Agent = ({ userName, userId, type }: AgentProps) => {
+const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) => {
     const router = useRouter();
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
@@ -58,7 +58,33 @@ const Agent = ({ userName, userId, type }: AgentProps) => {
         }
     }, [])
 
+
+    const handleGenerateFeedback = async (messages: SavedMessage[]) => {
+        const { success, id } = {
+            success: true,
+            id: 'feedback'
+        }
+
+        if (success && id){
+            router.push(`/interview-main/${interviewId}/feedback`)
+        }
+
+        else{
+            console.log("Error saving feedback")
+            router.push('/interview-home')
+        }
+
+    }
+
     useEffect(() => {
+        if (callStatus === CallStatus.FINISHED){
+            if (type === 'generate'){
+                router.push('/interview-home')
+            }
+            else{
+                handleGenerateFeedback(messages)
+            }
+        }
         if(callStatus === CallStatus.FINISHED) router.push('/');
     }, [messages, callStatus, type, userId]);
 
