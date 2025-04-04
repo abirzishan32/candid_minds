@@ -135,5 +135,5 @@ export async function getInterviewByUserId(userId : string) : Promise<Interview[
   return interviews.docs.map((doc) => ({
     id: doc.id,
     ...doc.data()
-  }))
+  })) as Interview[]
 }
