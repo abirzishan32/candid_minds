@@ -137,3 +137,13 @@ export async function getInterviewByUserId(userId : string) : Promise<Interview[
     ...doc.data()
   })) as Interview[]
 }
+
+export async function getLatestInterviews(params : GetLatestInterviewsParams) : Promise<Interview[] | null> {
+  const { userId, limit = 20} = params
+  const interviews = await db.collection('interviews').where('finalized', '==', true).where('userId', '!=', userId).orderBy('createdAt', 'desc').limit(20).get()
+
+  return interviews.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data()
+  })) as Interview[]
+}
