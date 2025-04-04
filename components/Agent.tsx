@@ -24,6 +24,8 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
+    const [elapsedTime, setElapsedTime] = useState<number>(0);
+    const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
@@ -59,6 +61,41 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
         }
     }, [])
 
+    // Timer management based on call status
+    useEffect(() => {
+        if (callStatus === CallStatus.ACTIVE) {
+            // Start the timer when call becomes active
+            const intervalId = setInterval(() => {
+                setElapsedTime(prevTime => prevTime + 1);
+            }, 1000);
+            setTimerId(intervalId);
+        } else if (callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE) {
+            // Stop the timer when call finishes or resets
+            if (timerId) {
+                clearInterval(timerId);
+                setTimerId(null);
+            }
+
+            // Reset timer if going back to inactive
+            if (callStatus === CallStatus.INACTIVE) {
+                setElapsedTime(0);
+            }
+        }
+
+        return () => {
+            // Cleanup
+            if (timerId) {
+                clearInterval(timerId);
+            }
+        };
+    }, [callStatus]);
+
+    // Format the elapsed time to mm:ss
+    const formatTime = (seconds: number): string => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
 
     const handleGenerateFeedback = async (messages: SavedMessage[]) => {
         const { success, id } = {
@@ -74,10 +111,7 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
             console.log("Error saving feedback")
             router.push('/interview-home')
         }
-
     }
-
-
 
     useEffect(() => {
         if (callStatus === CallStatus.FINISHED){
@@ -93,7 +127,7 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
 
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);
-
+        setElapsedTime(0); // Reset timer when starting a new call
 
         // CASE 1: generating an interview based on user's choice
         if (type === 'generate'){
@@ -117,15 +151,11 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                     questions: formattedQues
                 }
             })
-
         }
-
-
     }
 
     const handleDisconnect = async () => {
         setCallStatus(CallStatus.FINISHED);
-
         vapi.stop();
     }
 
@@ -150,6 +180,19 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                     </div>
                 </div>
             </div>
+
+            {/* Timer display */}
+            <div className="timer-container my-2 text-center">
+                <div className="timer-display bg-gray-100 px-4 py-2 rounded-full inline-flex items-center shadow-sm">
+                    <span className="text-gray-700 font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Interview Time: {formatTime(elapsedTime)}
+                    </span>
+                </div>
+            </div>
+
             {messages.length > 0 && (
                 <div className="transcript-border">
                     <div className="transcript">
