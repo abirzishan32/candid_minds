@@ -167,7 +167,7 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                         />
 
                         <span>
-                                {isCallInactiveOrFinished ? 'Call' : '. . .'}
+                                {isCallInactiveOrFinished ? 'Start Interview' : '. . .'}
                             </span>
                     </button>
                 ) : (
