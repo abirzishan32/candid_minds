@@ -61,36 +61,30 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
         }
     }, [])
 
-    // Timer management based on call status
     useEffect(() => {
         if (callStatus === CallStatus.ACTIVE) {
-            // Start the timer when call becomes active
             const intervalId = setInterval(() => {
                 setElapsedTime(prevTime => prevTime + 1);
             }, 1000);
             setTimerId(intervalId);
         } else if (callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE) {
-            // Stop the timer when call finishes or resets
             if (timerId) {
                 clearInterval(timerId);
                 setTimerId(null);
             }
 
-            // Reset timer if going back to inactive
             if (callStatus === CallStatus.INACTIVE) {
                 setElapsedTime(0);
             }
         }
 
         return () => {
-            // Cleanup
             if (timerId) {
                 clearInterval(timerId);
             }
         };
     }, [callStatus]);
 
-    // Format the elapsed time to mm:ss
     const formatTime = (seconds: number): string => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
@@ -100,13 +94,12 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
     const handleGenerateFeedback = async (messages: SavedMessage[]) => {
         const { success, id } = {
             success: true,
-            id: 'feedback'
+            id: 'feedback-id'
         }
 
         if (success && id){
             router.push(`/interview-main/${interviewId}/feedback`)
         }
-
         else{
             console.log("Error saving feedback")
             router.push('/interview-home')
@@ -122,14 +115,12 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                 handleGenerateFeedback(messages)
             }
         }
-        if(callStatus === CallStatus.FINISHED) router.push('/interview-main');
-    }, [messages, callStatus, type, userId]);
+    }, [messages, callStatus, type, userId, interviewId, router]);
 
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);
-        setElapsedTime(0); // Reset timer when starting a new call
+        setElapsedTime(0);
 
-        // CASE 1: generating an interview based on user's choice
         if (type === 'generate'){
             await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
                 variableValues: {
@@ -138,8 +129,6 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                 }
             })
         }
-
-        // CASE 2: no need to generate, just ask the questions that are already generated
         else{
             let formattedQues = ''
             if (questions){
@@ -164,62 +153,80 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
 
     return (
         <>
-            <div className="call-view">
-                <div className="card-interviewer">
-                    <div className="avatar">
-                        <Image src="/ai-avatar.png" alt="vapi" width={65} height={54} className="object-cover" />
-                        {isSpeaking && <span className="animate-speak" />}
+            <div className="interview-panel">
+                <div className="flex justify-between items-center mb-3">
+                    <div className="text-primary-100 font-semibold">Interview Session</div>
+                    <div className="timer-display">
+                        <span className="text-primary-100 text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {formatTime(elapsedTime)}
+                        </span>
                     </div>
-                    <h3>AI Interviewer</h3>
                 </div>
 
-                <div className="card-border">
-                    <div className="card-content">
-                        <Image src="/me.jpeg" alt="user avatar" width={540} height={540} className="rounded-full object-cover size-[120px]" />
-                        <h3>{userName}</h3>
+                <div className="flex justify-between items-center">
+                    <div className="flex flex-col items-center">
+                        <div className="avatar-container">
+                            <div className={`waveform-container ${isSpeaking ? 'speaking' : ''}`}>
+                                <div className="wave-bar"></div>
+                                <div className="wave-bar"></div>
+                                <div className="wave-bar"></div>
+                                <div className="wave-bar"></div>
+                                <div className="wave-bar"></div>
+                            </div>
+                            <div className="avatar-badge"></div>
+                        </div>
+                        <h4 className="text-primary-100 text-sm mt-2">AI Interviewer</h4>
+                    </div>
+
+                    <div className="interview-divider"></div>
+
+                    <div className="flex flex-col items-center">
+                        <div className="avatar-container">
+                            <Image
+                                src="/me.jpeg"
+                                alt="user avatar"
+                                width={80}
+                                height={80}
+                                className="rounded-full object-cover border-2 border-gray-700 shadow-lg"
+                            />
+                            <div className="avatar-badge"></div>
+                        </div>
+                        <h4 className="text-primary-100 text-sm mt-2">{userName}</h4>
                     </div>
                 </div>
             </div>
 
-            {/* Timer display */}
-            <div className="timer-container my-2 text-center">
-                <div className="timer-display bg-gray-100 px-4 py-2 rounded-full inline-flex items-center shadow-sm">
-                    <span className="text-gray-700 font-medium">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Interview Time: {formatTime(elapsedTime)}
-                    </span>
-                </div>
-            </div>
-
-            {messages.length > 0 && (
-                <div className="transcript-border">
-                    <div className="transcript">
+            <div className={`transcript-border transition-all ${messages.length > 0 ? 'opacity-100' : 'opacity-80'}`}>
+                <div className="transcript min-h-[100px]">
+                    {messages.length > 0 ? (
                         <p key={latestMessage} className={cn('transition-opacity duration-500 opacity-0', 'animate-fadeIn opacity-100')}>
                             {latestMessage}
                         </p>
-                    </div>
+                    ) : (
+                        <p className="text-gray-400 italic text-center">Your conversation will appear here</p>
+                    )}
                 </div>
-            )}
+            </div>
 
-            <div className="w-full flex justify-center">
+            <div className="w-full flex justify-center mt-4">
                 {callStatus !== 'ACTIVE' ? (
                     <button className="relative btn-call" onClick={handleCall}>
-                        <span className={cn('absolute animate-ping rounded-full opacity-75', callStatus !=='CONNECTING' && 'hidden')}
-                        />
-
+                        <span className={cn('absolute animate-ping rounded-full opacity-75', callStatus !=='CONNECTING' && 'hidden')} />
                         <span>
-                                {isCallInactiveOrFinished ? 'Start Interview' : '. . .'}
-                            </span>
+                            {isCallInactiveOrFinished ? 'Start Interview' : 'Connecting...'}
+                        </span>
                     </button>
                 ) : (
                     <button className="btn-disconnect" onClick={handleDisconnect}>
-                        End
+                        End Interview
                     </button>
                 )}
             </div>
         </>
     )
 }
+
 export default Agent

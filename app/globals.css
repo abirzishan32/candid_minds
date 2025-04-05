@@ -332,3 +332,132 @@
     transform: translateY(0);
   }
 }
+
+
+@keyframes wave1 {
+  0%, 100% { height: 10px; }
+  50% { height: 30px; }
+}
+
+@keyframes wave2 {
+  0%, 100% { height: 20px; }
+  25% { height: 15px; }
+  50% { height: 40px; }
+  75% { height: 25px; }
+}
+
+@keyframes wave3 {
+  0%, 100% { height: 15px; }
+  33% { height: 35px; }
+  66% { height: 10px; }
+}
+
+@keyframes wave4 {
+  0%, 100% { height: 5px; }
+  50% { height: 25px; }
+}
+
+@keyframes wave5 {
+  0%, 100% { height: 12px; }
+  30% { height: 40px; }
+  60% { height: 20px; }
+}
+
+@keyframes colorPulse {
+  0% { background-color: #8A5CF5; }
+  25% { background-color: #7A7EF9; }
+  50% { background-color: #61A0F9; }
+  75% { background-color: #7A7EF9; }
+  100% { background-color: #8A5CF5; }
+}
+
+.waveform-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #171532, #242552);
+  padding: 5px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.wave-bar {
+  width: 4px;
+  height: 15px;
+  border-radius: 4px;
+  background-color: #8A5CF5;
+}
+
+.speaking .wave-bar {
+  animation: colorPulse 2s infinite;
+}
+
+.wave-bar:nth-child(1) {
+  animation-delay: -0.6s;
+}
+
+.wave-bar:nth-child(2) {
+  animation-delay: -0.4s;
+}
+
+.wave-bar:nth-child(3) {
+  animation-delay: -0.2s;
+}
+
+.wave-bar:nth-child(4) {
+  animation-delay: 0s;
+}
+
+.wave-bar:nth-child(5) {
+  animation-delay: -0.8s;
+}
+
+.speaking .wave-bar:nth-child(1) {
+  animation: wave1 0.6s ease-in-out infinite, colorPulse 2s infinite;
+}
+
+.speaking .wave-bar:nth-child(2) {
+  animation: wave2 0.8s ease-in-out infinite, colorPulse 2s infinite;
+}
+
+.speaking .wave-bar:nth-child(3) {
+  animation: wave3 0.7s ease-in-out infinite, colorPulse 2s infinite;
+}
+
+.speaking .wave-bar:nth-child(4) {
+  animation: wave4 0.9s ease-in-out infinite, colorPulse 2s infinite;
+}
+
+.speaking .wave-bar:nth-child(5) {
+  animation: wave5 0.65s ease-in-out infinite, colorPulse 2s infinite;
+}
+
+.avatar-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #49de50;
+  border: 2px solid #1A1C20;
+}
+
+.interview-panel {
+  background: linear-gradient(180deg, rgba(26, 28, 32, 0.8) 0%, rgba(8, 9, 13, 0.9) 100%);
+  border: 1px solid rgba(75, 77, 79, 0.4);
+  border-radius: 16px;
+}
+
