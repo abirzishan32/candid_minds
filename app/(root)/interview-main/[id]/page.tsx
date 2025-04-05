@@ -1,17 +1,21 @@
-import {getInterviewById} from "@/lib/actions/general.action";
-import {redirect} from "next/navigation";
+import { getInterviewById } from "@/lib/actions/general.action";
+import { redirect } from "next/navigation";
 import Image from "next/image";
-import {getRandomInterviewCover} from "@/lib/utils";
+import { getRandomInterviewCover } from "@/lib/utils";
 import DisplayTechIcons from "@/components/DisplayTechIcons";
 import Agent from "@/components/Agent";
-import {getCurrentUser} from "@/lib/actions/auth.action";
+import { getCurrentUser, isAuthenticated } from "@/lib/actions/auth.action";
 
 const Page = async ({ params }: RouteParams) => {
+    // Check authentication first
+    const isUserAuth = await isAuthenticated();
+    if (!isUserAuth) redirect('/sign-up');
+
     const { id } = await params;
     const user = await getCurrentUser();
     const interview = await getInterviewById(id);
 
-    if(!interview) redirect('/')
+    if (!interview) redirect('/interview-home');
 
     return (
         <>

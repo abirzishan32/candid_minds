@@ -1,34 +1,50 @@
 import React from 'react'
-import {Button} from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import InterviewCard from "@/components/InterviewCard";
-import {getCurrentUser} from "@/lib/actions/auth.action";
-import {getInterviewByUserId, getLatestInterviews} from "@/lib/actions/general.action";
+import { getCurrentUser } from "@/lib/actions/auth.action";
+import { getInterviewByUserId, getLatestInterviews } from "@/lib/actions/general.action";
+import AuthCheck from "@/components/AuthCheck";
 
 const Page = async () => {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
+    const isAuthenticated = !!user;
 
-    const [userInterviews, latestInterviews] = await Promise.all([
-        await getInterviewByUserId(user?.id!),
-        await getLatestInterviews({userId: user?.id!})
-    ])
+    // Only fetch interviews if user is authenticated
+    const [userInterviews, latestInterviews] = isAuthenticated
+        ? await Promise.all([
+            getInterviewByUserId(user?.id!),
+            getLatestInterviews({userId: user?.id!})
+        ])
+        : [[], []];
 
-    const hasPastInterviews = userInterviews?.length! > 0
-    const hasUpcomingInterviews = latestInterviews?.length! > 0
+    const hasPastInterviews = userInterviews?.length! > 0;
+    const hasUpcomingInterviews = latestInterviews?.length! > 0;
 
     return (
         <>
             <section className="card-cta rounded-2xl bg-gradient-to-br from-background to-muted/50 p-8 border border-border/50 shadow-lg backdrop-blur-sm">
                 <div className="flex flex-col gap-6 max-w-lg">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-pulse">Want to upgrade your skill with our courses and interviews?</h2>
-                    <p className="text-lg text-muted-foreground">Enroll in courses you like and take demo interviews and get instant feedbacks!</p>
-                    <Button asChild className="btn btn-primary max-sm:w-full group transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1">
-                        <Link href="/interview-main" className="flex items-center gap-2">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-pulse">
+                        Get Interview-Ready with AI-Powered Practice & Feedback
+                    </h2>
+
+
+                    <p className="text-lg text-muted-foreground">
+                        Practice real interview questions & get instant feedback!
+                    </p>
+
+                    <AuthCheck
+                        isAuthenticated={isAuthenticated}
+                        href="/interview-main"
+                        className="btn btn-primary max-sm:w-full group transition-all duration-300 hover:shadow-lg
+                                    hover:shadow-primary/20 hover:-translate-y-1">
+
+                        <div className="flex items-center gap-2">
                             Start an Interview
                             <span className="group-hover:translate-x-1 transition-transform">→</span>
-                        </Link>
-                    </Button>
+                        </div>
+                    </AuthCheck>
                 </div>
 
                 <div className="relative">
@@ -49,13 +65,22 @@ const Page = async () => {
                     Your Interviews
                 </h2>
                 <div className="interviews-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {hasPastInterviews ? (
-                        userInterviews?.map((interview) => (
-                            <InterviewCard {...interview} key={interview.id} />
-                        ))
+                    {isAuthenticated ? (
+                        hasPastInterviews ? (
+                            userInterviews?.map((interview) => (
+                                <InterviewCard {...interview} key={interview.id} isAuthenticated={isAuthenticated} />
+                            ))
+                        ) : (
+                            <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-muted-foreground/30">
+                                <p className="text-muted-foreground">You haven't taken any interviews yet!</p>
+                            </div>
+                        )
                     ) : (
                         <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-muted-foreground/30">
-                            <p className="text-muted-foreground">You haven't taken any interviews yet!</p>
+                            <p className="text-muted-foreground">
+                                <Link href="/sign-in" className="text-primary-100 hover:underline">Log in</Link> or
+                                <Link href="/sign-up" className="text-primary-100 hover:underline ml-1">sign up</Link> to see your interviews
+                            </p>
                         </div>
                     )}
                 </div>
@@ -70,11 +95,15 @@ const Page = async () => {
                 <div className="interviews-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {hasUpcomingInterviews ? (
                         latestInterviews?.map((interview) => (
-                            <InterviewCard {...interview} key={interview.id} />
+                            <InterviewCard {...interview} key={interview.id} isAuthenticated={isAuthenticated} />
                         ))
                     ) : (
                         <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-muted-foreground/30">
-                            <p className="text-muted-foreground">There are no new interviews available!</p>
+                            <p className="text-muted-foreground">
+                                {isAuthenticated
+                                    ? "There are no new interviews available!"
+                                    : "Sign up to access practice interviews"}
+                            </p>
                         </div>
                     )}
                 </div>

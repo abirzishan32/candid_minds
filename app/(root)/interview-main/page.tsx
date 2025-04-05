@@ -1,11 +1,14 @@
 import React from 'react'
 import Agent from "@/components/Agent";
-import {getCurrentUser} from "@/lib/actions/auth.action";
+import { getCurrentUser, isAuthenticated } from "@/lib/actions/auth.action";
+import { redirect } from "next/navigation";
 
 const Page = async () => {
+    // Check authentication first
+    const isUserAuth = await isAuthenticated();
+    if (!isUserAuth) redirect('/sign-up');
 
-    const user = await getCurrentUser()
-
+    const user = await getCurrentUser();
 
     return (
         <>
