@@ -45,6 +45,7 @@ interface Feedback {
     type: string;
     techstack: string[];
     createdAt?: string;
+    isAuthenticated?: boolean;
   }
   
   interface AgentProps {

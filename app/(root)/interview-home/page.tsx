@@ -41,7 +41,7 @@ const Page = async () => {
                                     hover:shadow-primary/20 hover:-translate-y-1">
 
                         <div className="flex items-center gap-2">
-                            Start an Interview
+                            Create an Interview
                             <span className="group-hover:translate-x-1 transition-transform">→</span>
                         </div>
                     </AuthCheck>
