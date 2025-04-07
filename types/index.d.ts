@@ -36,6 +36,12 @@ interface Feedback {
     name: string;
     email: string;
     id: string;
+    role: 'admin' | 'user';
+  }
+
+  interface SetUserRoleParams {
+    userId: string;
+    newRole: 'admin' | 'user';
   }
   
   interface InterviewCardProps {
@@ -98,4 +104,30 @@ interface Feedback {
   interface TechIconProps {
     techStack: string[];
   }
+
+
+interface InterviewCardProps {
+  id: string;
+  role: string;
+  type: string;
+  techstack: string[];
+  createdAt?: string;
+  userId: string;
+  isCompanyInterview?: boolean;
+  companyName?: string;
+  level?: string;
+  isAuthenticated?: boolean;
+}
+
+interface CreateCustomInterviewParams {
+  role: string;
+  companyName: string;
+  type: string;
+  techstack: string[];
+  experienceLevel: string;
+  questions: string[];
+  adminId: string;
+  adminName: string;
+  isPublic: boolean;
+}
   

@@ -156,11 +156,11 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
 
     return (
         <>
-            <div className="interview-panel">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-lg mb-5">
                 <div className="flex justify-between items-center mb-3">
-                    <div className="text-primary-100 font-semibold">Interview Session</div>
-                    <div className="timer-display">
-                        <span className="text-primary-100 text-sm">
+                    <div className="text-white font-semibold tracking-wide">Interview Session</div>
+                    <div className="bg-black bg-opacity-50 px-3 py-1 rounded-full">
+                        <span className="text-primary-100 text-sm flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -169,61 +169,71 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                     </div>
                 </div>
 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center my-6">
                     <div className="flex flex-col items-center">
-                        <div className="avatar-container">
-                            <div className={`waveform-container ${isSpeaking ? 'speaking' : ''}`}>
-                                <div className="wave-bar"></div>
-                                <div className="wave-bar"></div>
-                                <div className="wave-bar"></div>
-                                <div className="wave-bar"></div>
-                                <div className="wave-bar"></div>
+                        <div className="relative">
+                            <div className={`absolute -inset-1 ${isSpeaking ? 'bg-primary-100/30 animate-pulse' : 'bg-gray-800/50'} rounded-full blur-md transition-all duration-300`}></div>
+                            <div className={`relative waveform-container ${isSpeaking ? 'speaking' : ''} size-20 rounded-full bg-gray-800 flex items-center justify-center border-2 border-gray-700 shadow-inner`}>
+                                <div className="wave-bar bg-primary-100"></div>
+                                <div className="wave-bar bg-primary-100"></div>
+                                <div className="wave-bar bg-primary-100"></div>
+                                <div className="wave-bar bg-primary-100"></div>
+                                <div className="wave-bar bg-primary-100"></div>
                             </div>
-                            <div className="avatar-badge"></div>
+                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
                         </div>
-                        <h4 className="text-primary-100 text-sm mt-2">AI Interviewer</h4>
+                        <h4 className="text-white text-sm mt-3 font-medium">AI Interviewer</h4>
                     </div>
 
-                    <div className="interview-divider"></div>
+                    <div className="h-0.5 w-32 bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
 
                     <div className="flex flex-col items-center">
-                        <div className="avatar-container">
-                            <Image
-                                src="/me.jpeg"
-                                alt="user avatar"
-                                width={80}
-                                height={80}
-                                className="rounded-full object-cover border-2 border-gray-700 shadow-lg"
-                            />
-                            <div className="avatar-badge"></div>
+                        <div className="relative">
+                            <div className="absolute -inset-1 bg-primary-100/20 rounded-full blur-md"></div>
+                            <div className="relative size-20 rounded-full overflow-hidden border-2 border-gray-700 shadow-lg">
+                                <Image
+                                    src="/me.jpeg"
+                                    alt="user avatar"
+                                    width={80}
+                                    height={80}
+                                    className="rounded-full object-cover"
+                                />
+                            </div>
+                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
                         </div>
-                        <h4 className="text-primary-100 text-sm mt-2">{userName}</h4>
+                        <h4 className="text-white text-sm mt-3 font-medium">{userName}</h4>
                     </div>
                 </div>
             </div>
 
-            <div className={`transcript-border transition-all ${messages.length > 0 ? 'opacity-100' : 'opacity-80'}`}>
+            <div className="bg-black bg-opacity-60 backdrop-blur-sm border border-gray-800 rounded-xl p-5 shadow-lg min-h-[120px] transition-all duration-500 hover:border-gray-700">
                 <div className="transcript min-h-[100px]">
                     {messages.length > 0 ? (
-                        <p key={latestMessage} className={cn('transition-opacity duration-500 opacity-0', 'animate-fadeIn opacity-100')}>
+                        <p key={latestMessage} className={cn('transition-opacity duration-500 opacity-0 text-white', 'animate-fadeIn opacity-100')}>
                             {latestMessage}
                         </p>
                     ) : (
-                        <p className="text-gray-400 italic text-center">Your conversation will appear here</p>
+                        <p className="text-gray-500 italic text-center">Your conversation will appear here</p>
                     )}
                 </div>
             </div>
 
-            <div className="w-full flex justify-center mt-4">
+            <div className="w-full flex justify-center mt-6">
                 {callStatus !== 'ACTIVE' ? (
-                    <button className="relative btn-call" onClick={handleCall}>
-                        <span className={cn('absolute animate-ping rounded-full opacity-75', callStatus !=='CONNECTING' && 'hidden')} />
+                    <button
+                        className="relative px-8 py-3 bg-gradient-to-r from-primary-100 to-primary-200 text-black font-bold rounded-lg shadow-lg hover:shadow-primary-100/30 transition-all duration-300 transform hover:-translate-y-1"
+                        onClick={handleCall}
+                    >
+                        <span className={cn('absolute inset-0 rounded-lg bg-primary-100/50 animate-ping opacity-75', callStatus !=='CONNECTING' && 'hidden')} />
                         <span>
                             {isCallInactiveOrFinished ? 'Start Interview' : 'Connecting...'}
                         </span>
                     </button>
                 ) : (
-                    <button className="btn-disconnect" onClick={handleDisconnect}>
+                    <button
+                        className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-lg hover:shadow-red-600/30 transition-all duration-300 transform hover:-translate-y-1"
+                        onClick={handleDisconnect}
+                    >
                         End Interview
                     </button>
                 )}

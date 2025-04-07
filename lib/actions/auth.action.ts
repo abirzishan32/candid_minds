@@ -37,10 +37,11 @@ export async function signUp(params: SignUpParams) {
         message: "User already exists. Please sign in.",
       };
 
-    // save user to db
+    // save user to db - now with role field defaulting to "user"
     await db.collection("users").doc(uid).set({
       name,
-      email
+      email,
+      role: "user" // Default role for new sign-ups
     });
 
     return {
@@ -106,9 +107,9 @@ export async function getCurrentUser(): Promise<User | null> {
 
     // get user info from db
     const userRecord = await db
-      .collection("users")
-      .doc(decodedClaims.uid)
-      .get();
+        .collection("users")
+        .doc(decodedClaims.uid)
+        .get();
     if (!userRecord.exists) return null;
 
     return {
@@ -129,3 +130,27 @@ export async function isAuthenticated() {
   return !!user;
 }
 
+// New function to check if user is an admin
+export async function isAdmin() {
+  const user = await getCurrentUser();
+  return user?.role === "admin";
+}
+
+// New function to set user role (admin use only)
+export async function setUserRole(params: SetUserRoleParams) {
+  const { userId, newRole } = params;
+  const currentUser = await getCurrentUser();
+
+  // Only admins can change roles
+  if (currentUser?.role !== "admin") {
+    return { success: false, message: "Unauthorized action" };
+  }
+
+  try {
+    await db.collection("users").doc(userId).update({ role: newRole });
+    return { success: true, message: `User role updated to ${newRole}` };
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    return { success: false, message: "Failed to update user role" };
+  }
+}

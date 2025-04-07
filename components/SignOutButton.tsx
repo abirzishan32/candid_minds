@@ -22,12 +22,12 @@ export default function SignOutButton() {
   };
 
   return (
-    <button
-      onClick={handleSignOut}
-      disabled={isLoading}
-      className="text-sm text-gray-400 hover:text-primary-100"
-    >
-      {isLoading ? 'Signing out...' : '(Logout)'}
-    </button>
+      <button
+          onClick={handleSignOut}
+          disabled={isLoading}
+          className="text-sm text-gray-300 hover:text-primary-100 transition-colors duration-200"
+      >
+        {isLoading ? 'Signing out...' : '(Logout)'}
+      </button>
   );
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import InterviewCard from "@/components/InterviewCard";
 import { getCurrentUser } from "@/lib/actions/auth.action";
-import { getInterviewByUserId, getLatestInterviews } from "@/lib/actions/general.action";
+import { getInterviewByUserId, getLatestInterviews, getCompanyInterviews } from "@/lib/actions/general.action";
 import AuthCheck from "@/components/AuthCheck";
 
 const Page = async () => {
@@ -11,15 +11,17 @@ const Page = async () => {
     const isAuthenticated = !!user;
 
     // Only fetch interviews if user is authenticated
-    const [userInterviews, latestInterviews] = isAuthenticated
+    const [userInterviews, latestInterviews, companyInterviews] = isAuthenticated
         ? await Promise.all([
             getInterviewByUserId(user?.id!),
-            getLatestInterviews({userId: user?.id!})
+            getLatestInterviews({userId: user?.id!}),
+            getCompanyInterviews()
         ])
-        : [[], []];
+        : [[], [], []];
 
     const hasPastInterviews = userInterviews?.length! > 0;
     const hasUpcomingInterviews = latestInterviews?.length! > 0;
+    const hasCompanyInterviews = companyInterviews?.length! > 0;
 
     return (
         <>
@@ -28,7 +30,6 @@ const Page = async () => {
                     <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-pulse">
                         Get Interview-Ready with AI-Powered Practice & Feedback
                     </h2>
-
 
                     <p className="text-lg text-muted-foreground">
                         Practice real interview questions & get instant feedback!
@@ -58,6 +59,21 @@ const Page = async () => {
                     />
                 </div>
             </section>
+
+            {/* Company Interviews Section - New section */}
+            {hasCompanyInterviews && (
+                <section className="flex flex-col gap-6 mt-14">
+                    <h2 className="text-2xl font-bold flex items-center gap-2 border-b pb-2">
+                        <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
+                        Company Recruiting Interviews
+                    </h2>
+                    <div className="interviews-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {companyInterviews?.map((interview) => (
+                            <InterviewCard {...interview} key={interview.id} isAuthenticated={isAuthenticated} />
+                        ))}
+                    </div>
+                </section>
+            )}
 
             <section className="flex flex-col gap-6 mt-14">
                 <h2 className="text-2xl font-bold flex items-center gap-2 border-b pb-2">
@@ -89,7 +105,7 @@ const Page = async () => {
             <section className="flex flex-col gap-6 mt-14">
                 <h2 className="text-2xl font-bold flex items-center gap-2 border-b pb-2">
                     <span className="w-2 h-6 bg-secondary rounded-full"></span>
-                    Take an interview
+                    Practice Interviews
                 </h2>
 
                 <div className="interviews-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

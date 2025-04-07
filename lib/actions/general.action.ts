@@ -124,3 +124,21 @@ export async function getFeedbackByInterviewId(params: GetFeedbackByInterviewIdP
   const feedbackDoc = querySnapshot.docs[0];
   return { id: feedbackDoc.id, ...feedbackDoc.data() } as Feedback;
 }
+
+
+export async function getCompanyInterviews(params: {limit?: number} = {}): Promise<Interview[] | null> {
+  const { limit = 10 } = params;
+
+  const interviews = await db
+      .collection("interviews")
+      .where("isCompanyInterview", "==", true)
+      .where("isPublic", "==", true)
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
+
+  return interviews.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Interview[];
+}
