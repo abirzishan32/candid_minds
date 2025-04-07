@@ -26,7 +26,7 @@ const AdminDashboard = async () => {
                     <h3 className="text-xl font-bold text-white mb-3">User Management</h3>
                     <p className="text-gray-400 mb-4">Manage user accounts and permissions</p>
                     <div className="text-right">
-                        <Link href="/admin-dashboard/users">
+                        <Link href="/user-management/">
                             <Button className="bg-primary-100 text-black px-4 py-2 rounded-lg hover:bg-primary-200 transition">
                                 Manage Users
                             </Button>

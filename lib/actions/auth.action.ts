@@ -2,6 +2,7 @@
 
 import { auth, db } from "@/firebase/admin";
 import { cookies } from "next/headers";
+import {dateTimestampInSeconds} from "@sentry/core";
 
 // Session duration (1 week)
 const SESSION_DURATION = 60 * 60 * 24 * 7;
@@ -41,7 +42,10 @@ export async function signUp(params: SignUpParams) {
     await db.collection("users").doc(uid).set({
       name,
       email,
-      role: "user" // Default role for new sign-ups
+      role: "user",
+      // creation time timestamp
+      createdAt: dateTimestampInSeconds(),
+      lastActive: dateTimestampInSeconds()
     });
 
     return {

@@ -37,6 +37,8 @@ interface Feedback {
     email: string;
     id: string;
     role: 'admin' | 'user';
+    lastActive?: string;
+    createdAt?: string;
   }
 
   interface SetUserRoleParams {
