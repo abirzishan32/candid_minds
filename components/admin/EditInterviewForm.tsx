@@ -161,6 +161,9 @@ const EditInterviewForm = ({ interview }: EditInterviewFormProps) => {
                             <InterviewQuestionsTab
                                 questions={formData.questions || []}
                                 onChange={(questions) => handleUpdateField('questions', questions)}
+                                role={formData.role}
+                                level={formData.level}
+                                type={formData.type}
                             />
                         </TabsContent>
 

@@ -2,18 +2,35 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, ChevronUp, ChevronDown, Save, X } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronUp, ChevronDown, Save, X, Sparkles, Loader2, Check } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { generateQuestionsWithAI } from '@/lib/actions/ai.action';
+import { Badge } from '@/components/ui/badge';
 
 interface InterviewQuestionsTabProps {
     questions: string[];
     onChange: (questions: string[]) => void;
+    role?: string;
+    level?: string;
+    type?: string;
 }
 
-const InterviewQuestionsTab = ({ questions, onChange }: InterviewQuestionsTabProps) => {
+const InterviewQuestionsTab = ({
+                                   questions,
+                                   onChange,
+                                   role = '',
+                                   level = '',
+                                   type = ''
+                               }: InterviewQuestionsTabProps) => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingText, setEditingText] = useState<string>('');
     const [newQuestion, setNewQuestion] = useState<string>('');
+
+    // AI question generation states
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [aiQuestions, setAiQuestions] = useState<string[]>([]);
+    const [appliedQuestions, setAppliedQuestions] = useState<Record<number, boolean>>({});
+    const [error, setError] = useState<string | null>(null);
 
     const addQuestion = () => {
         if (newQuestion.trim() !== '') {
@@ -66,10 +83,108 @@ const InterviewQuestionsTab = ({ questions, onChange }: InterviewQuestionsTabPro
         onChange(updatedQuestions);
     };
 
+    // AI question generation function
+    const handleGenerateQuestions = async () => {
+        setIsGenerating(true);
+        setError(null);
+        try {
+            const response = await generateQuestionsWithAI({
+                role,
+                level,
+                type,
+                currentQuestions: questions
+            });
+
+            if (response.success) {
+                setAiQuestions(response.questions);
+                setAppliedQuestions({});
+            } else {
+                setError(response.message || "Failed to generate questions");
+            }
+        } catch (err) {
+            console.error("Error generating questions:", err);
+            setError("An unexpected error occurred");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    // Apply an AI-generated question
+    const applyQuestion = (index: number) => {
+        const questionToApply = aiQuestions[index];
+        onChange([...questions, questionToApply]);
+
+        // Mark as applied
+        setAppliedQuestions(prev => ({
+            ...prev,
+            [index]: true
+        }));
+    };
+
     return (
         <div className="space-y-6">
-            <h3 className="text-xl font-medium text-white">Interview Questions</h3>
-            <p className="text-gray-400 text-sm">Edit, reorder, or add new questions for this interview.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h3 className="text-xl font-medium text-white">Interview Questions</h3>
+                    <p className="text-gray-400 text-sm">Edit, reorder, or add new questions for this interview.</p>
+                </div>
+                <Button
+                    onClick={handleGenerateQuestions}
+                    disabled={isGenerating}
+                    className="bg-indigo-900/40 hover:bg-indigo-800/60 text-indigo-300 border border-indigo-800/50"
+                >
+                    {isGenerating ? (
+                        <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
+                        </>
+                    )}
+                </Button>
+            </div>
+
+            {/* AI-Generated Questions Section */}
+            {aiQuestions.length > 0 && (
+                <div className="bg-indigo-950/30 border border-indigo-800/30 rounded-lg p-4">
+                    <div className="flex items-center mb-3">
+                        <Sparkles className="h-4 w-4 text-indigo-400 mr-2" />
+                        <h4 className="text-white text-sm font-medium">AI-Generated Questions</h4>
+                    </div>
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                        {aiQuestions.map((question, index) => (
+                            <div
+                                key={index}
+                                className="flex justify-between items-start bg-black/40 border border-indigo-800/20 rounded-lg p-3"
+                            >
+                                <p className="text-gray-300 text-sm flex-grow mr-3">{question}</p>
+                                <Button
+                                    size="sm"
+                                    onClick={() => applyQuestion(index)}
+                                    disabled={appliedQuestions[index]}
+                                    className={appliedQuestions[index]
+                                        ? "bg-green-900/30 text-green-300 border border-green-800/30 cursor-default"
+                                        : "bg-indigo-900/30 hover:bg-indigo-800/50 text-indigo-300 border border-indigo-800/30"
+                                    }
+                                >
+                                    {appliedQuestions[index]
+                                        ? <><Check className="h-3 w-3 mr-1" /> Applied</>
+                                        : "Apply"}
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+                <div className="bg-red-900/30 border border-red-800/30 text-red-300 p-4 rounded-lg">
+                    {error}
+                </div>
+            )}
 
             {questions.length === 0 && (
                 <div className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-8 text-center">
