@@ -74,7 +74,7 @@ const courseCategories = [
             {
                 id: "resume",
                 title: "Portfolio & Resume Building",
-                coverImage: "/courses/resume.jpg",
+                coverImage: "/courses/resume-checker.jpg",
                 level: "All Levels",
                 modules: 6,
                 duration: "4 hours",

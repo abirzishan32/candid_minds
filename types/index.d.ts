@@ -121,15 +121,32 @@ interface InterviewCardProps {
   isAuthenticated?: boolean;
 }
 
-interface CreateCustomInterviewParams {
-  role: string;
-  companyName: string;
-  type: string;
-  techstack: string[];
-  experienceLevel: string;
-  questions: string[];
-  adminId: string;
-  adminName: string;
-  isPublic: boolean;
+
+interface ResumeAnalysisResult {
+  overallScore: number;
+  sectionScores: Record<string, number>;
+  sectionFeedback: Record<string, string>;
+  strengths: string[];
+  improvements: {
+    title: string;
+    description: string;
+  }[];
+  keywords: string[];
+  missedKeywords?: string[];
+  suggestions: {
+    title: string;
+    description: string;
+    before?: string;
+    after?: string;
+    priority?: 'high' | 'medium' | 'low';
+  }[];
+  timestamp: string;
 }
-  
+
+interface ResumeAnalysisRecord {
+  id: string;
+  userId: string;
+  fileName: string;
+  analysis: ResumeAnalysisResult;
+  createdAt: string;
+}
