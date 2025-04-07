@@ -3,6 +3,7 @@
 import { db } from "@/firebase/admin";
 import { getRandomInterviewCover } from "@/lib/utils";
 import { isAdmin } from "./auth.action";
+import {dateTimestampInSeconds} from "@sentry/core";
 
 interface CreateCustomInterviewParams {
     role: string;
@@ -115,8 +116,7 @@ export async function getAllUsers() {
             .orderBy("name", "asc")
             .get();
 
-        // Map the user documents to the expected format
-        // Add defaults for missing fields to prevent errors
+
         const users = usersSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -124,7 +124,6 @@ export async function getAllUsers() {
                 name: data.name || 'Unknown',
                 email: data.email || 'No email',
                 role: data.role || 'user',
-                // Provide default values for optional properties
                 lastActive: data.lastActive?.toDate?.()?.toISOString() || null,
                 createdAt: data.createdAt?.toDate?.()?.toISOString() || null
             };
@@ -140,6 +139,234 @@ export async function getAllUsers() {
             success: false,
             message: "Failed to fetch users",
             users: []
+        };
+    }
+}
+
+
+export async function getAllInterviews() {
+    try {
+        // Verify that the user is an admin
+        const userIsAdmin = await isAdmin();
+        if (!userIsAdmin) {
+            return {
+                success: false,
+                message: "Unauthorized: Only admins can access this data",
+                interviews: []
+            };
+        }
+
+        // Get all interviews from the database with usage statistics
+        const interviewsSnapshot = await db
+            .collection("interviews")
+            .orderBy("createdAt", "desc")
+            .get();
+
+        // Get usage statistics for each interview
+        const interviewPromises = interviewsSnapshot.docs.map(async (doc) => {
+            const data = doc.data();
+
+            // Count how many times this interview was taken (number of feedbacks)
+            const feedbacksSnapshot = await db
+                .collection("feedbacks")
+                .where("interviewId", "==", doc.id)
+                .count()
+                .get();
+
+            return {
+                id: doc.id,
+                ...data,
+                usageCount: feedbacksSnapshot.data().count || 0,
+                questions: data.questions || [],
+                role: data.role,
+                level: data.level,
+                techstack: data.techstack,
+                userId: data.userId,
+                type: data.type,
+                finalized: data.finalized,
+                createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+            };
+        });
+
+        const interviews = await Promise.all(interviewPromises);
+
+        return {
+            success: true,
+            interviews
+        };
+    } catch (error) {
+        console.error("Error fetching all interviews:", error);
+        return {
+            success: false,
+            message: "Failed to fetch interviews",
+            interviews: []
+        };
+    }
+}
+
+export async function deleteInterview(interviewId: string) {
+    try {
+        // Verify that the user is an admin
+        const userIsAdmin = await isAdmin();
+        if (!userIsAdmin) {
+            return {
+                success: false,
+                message: "Unauthorized: Only admins can delete interviews"
+            };
+        }
+
+        // Delete the interview
+        await db.collection("interviews").doc(interviewId).delete();
+
+        // Delete associated feedbacks
+        const feedbacksSnapshot = await db
+            .collection("feedbacks")
+            .where("interviewId", "==", interviewId)
+            .get();
+
+        // Use batch delete for feedbacks
+        const batch = db.batch();
+        feedbacksSnapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        return {
+            success: true,
+            message: "Interview and related data deleted successfully"
+        };
+    } catch (error) {
+        console.error("Error deleting interview:", error);
+        return {
+            success: false,
+            message: "Failed to delete interview"
+        };
+    }
+}
+
+export async function updateInterviewQuestions(interviewId: string, questions: string[]) {
+    try {
+        // Verify that the user is an admin
+        const userIsAdmin = await isAdmin();
+        if (!userIsAdmin) {
+            return {
+                success: false,
+                message: "Unauthorized: Only admins can update interviews"
+            };
+        }
+
+        // Update the interview document with new questions
+        await db.collection("interviews").doc(interviewId).update({
+            questions: questions,
+            updatedAt: dateTimestampInSeconds()
+        });
+
+        return {
+            success: true,
+            message: "Interview questions updated successfully"
+        };
+    } catch (error) {
+        console.error("Error updating interview questions:", error);
+        return {
+            success: false,
+            message: "Failed to update interview questions"
+        };
+    }
+}
+
+export async function getInterviewById(interviewId: string) {
+    try {
+        // Verify that the user is an admin
+        const userIsAdmin = await isAdmin();
+        if (!userIsAdmin) {
+            return {
+                success: false,
+                message: "Unauthorized: Only admins can access this data",
+                interview: null
+            };
+        }
+
+        // Fetch the interview
+        const interviewDoc = await db.collection("interviews").doc(interviewId).get();
+
+        if (!interviewDoc.exists) {
+            return {
+                success: false,
+                message: "Interview not found",
+                interview: null
+            };
+        }
+
+        const data = interviewDoc.data();
+
+        // Count how many times this interview was taken
+        const feedbacksSnapshot = await db
+            .collection("feedbacks")
+            .where("interviewId", "==", interviewId)
+            .count()
+            .get();
+
+        return {
+            success: true,
+            interview: {
+                id: interviewDoc.id,
+                role: data?.role || "",
+                level: data?.level || "",
+                questions: data?.questions || [],
+                techstack: data?.techstack || [],
+                createdAt: data?.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+                userId: data?.userId || "",
+                type: data?.type || "",
+                finalized: data?.finalized || false
+            } as Interview
+        };
+    } catch (error) {
+        console.error("Error fetching interview:", error);
+        return {
+            success: false,
+            message: "Failed to fetch interview",
+            interview: null
+        };
+    }
+}
+
+
+
+export async function updateInterview(params: {
+    interviewId: string;
+    role?: string;
+    level?: string;
+    questions?: string[];
+    techstack?: string[];
+    type?: string;
+    finalized?: boolean;
+}) {
+    try {
+        // Verify that the user is an admin
+        const userIsAdmin = await isAdmin();
+        if (!userIsAdmin) {
+            return {
+                success: false,
+                message: "Unauthorized: Only admins can update interviews"
+            };
+        }
+
+        const { interviewId, ...updateData } = params;
+
+
+
+        // Update the interview
+        await db.collection("interviews").doc(interviewId).update(updateData);
+
+        return {
+            success: true,
+            message: "Interview updated successfully"
+        };
+    } catch (error) {
+        console.error("Error updating interview:", error);
+        return {
+            success: false,
+            message: "Failed to update interview"
         };
     }
 }
