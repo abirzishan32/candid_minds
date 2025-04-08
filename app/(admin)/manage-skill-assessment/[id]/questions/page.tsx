@@ -3,16 +3,34 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaQuestion } from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaQuestion, FaGripVertical } from "react-icons/fa";
 import { toast } from "sonner";
 import { 
   getSkillAssessmentById, 
   createAssessmentQuestion,
   updateAssessmentQuestion,
-  deleteAssessmentQuestion
+  deleteAssessmentQuestion,
+  updateSkillAssessment
 } from "@/lib/actions/skill-assessment.action";
 import { SkillAssessment, AssessmentQuestion } from "@/lib/actions/skill-assessment.action";
 import QuestionForm from "@/components/skill-assessment/QuestionForm";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 function getQuestionTypeColor(type: string) {
   switch (type) {
@@ -29,6 +47,124 @@ function getQuestionTypeColor(type: string) {
   }
 }
 
+interface SortableQuestionItemProps {
+  question: AssessmentQuestion;
+  index: number;
+  onEdit: (question: AssessmentQuestion) => void;
+  onDelete: (questionId: string) => void;
+}
+
+function SortableQuestionItem({ question, index, onEdit, onDelete }: SortableQuestionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 1,
+  };
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`bg-gray-800 rounded-lg p-6 ${isDragging ? 'border-2 border-blue-500' : ''}`}
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1 pr-4">
+          <div className="flex items-center mb-2">
+            <div 
+              {...attributes} 
+              {...listeners} 
+              className="mr-3 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-300"
+            >
+              <FaGripVertical className="w-5 h-5" />
+            </div>
+            <span className="text-sm font-medium text-gray-400 mr-2">
+              Question {index + 1}
+            </span>
+            <span
+              className={`px-2 py-0.5 text-xs rounded-full ${
+                getQuestionTypeColor(question.type)
+              }`}
+            >
+              {question.type}
+            </span>
+          </div>
+          <p className="text-lg font-medium text-white mb-3">
+            {question.question}
+          </p>
+          
+          {question.type === "multiple-choice" && question.options && (
+            <div className="space-y-2 mt-3">
+              <h4 className="text-sm font-medium text-gray-400">
+                Options:
+              </h4>
+              <ul className="space-y-1 pl-5">
+                {(() => {
+                  // Safely extract options as an array
+                  let options = [];
+                  if (Array.isArray(question.options)) {
+                    options = question.options;
+                  } else if (typeof question.options === 'object' && question.options !== null) {
+                    options = Object.values(question.options);
+                  }
+                  
+                  return options.map((option: any) => {
+                    if (!option || !option.id) {
+                      console.warn('Invalid option:', option);
+                      return null;
+                    }
+                    
+                    return (
+                      <li
+                        key={option.id}
+                        className={`text-sm ${
+                          option.isCorrect
+                            ? "text-green-500"
+                            : "text-gray-300"
+                        }`}
+                      >
+                        {option.text || '[No text]'}{" "}
+                        {option.isCorrect && (
+                          <span className="text-green-500">✓</span>
+                        )}
+                      </li>
+                    );
+                  });
+                })()}
+              </ul>
+            </div>
+          )}
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => onEdit(question)}
+            className="p-2 text-blue-400 hover:text-blue-300"
+          >
+            <FaEdit className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => onDelete(question.id)}
+            className="p-2 text-red-400 hover:text-red-300"
+          >
+            <FaTrash className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function AssessmentQuestionsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [assessment, setAssessment] = useState<SkillAssessment | null>(null);
@@ -36,6 +172,15 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  // For drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Use React.use() to unwrap params
   const { id } = React.use(params);
@@ -130,6 +275,49 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
     router.push(`/manage-skill-assessment/${id}/questions/${question.id}`);
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setQuestions((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      
+      try {
+        setIsSavingOrder(true);
+        
+        // Update each question's order based on its new position
+        const updatedQuestions = questions.map((question, index) => ({
+          ...question,
+          order: index
+        }));
+        
+        // Create an array of promises for updating each question
+        const updatePromises = updatedQuestions.map(question => 
+          updateAssessmentQuestion(question.id, { order: question.order })
+        );
+        
+        // Update the questions array in the assessment
+        await updateSkillAssessment(id, {
+          questions: updatedQuestions.map(q => q.id)
+        });
+        
+        // Execute all promises in parallel
+        await Promise.all(updatePromises);
+        
+        toast.success("Question order updated");
+      } catch (error) {
+        console.error("Error updating question order:", error);
+        toast.error("Failed to update question order");
+      } finally {
+        setIsSavingOrder(false);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 p-8">
@@ -189,6 +377,13 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
                 `Manage the questions for this assessment (${questions.length} ${questions.length === 1 ? 'question' : 'questions'})` : 
                 'Loading assessment details...'}
             </p>
+            {questions.length > 1 && (
+              <p className="text-blue-400 mt-1">
+                <span className="flex items-center">
+                  <FaGripVertical className="mr-1" /> Drag questions to reorder them
+                </span>
+              </p>
+            )}
           </div>
           <button
             onClick={() => setIsAddingQuestion(true)}
@@ -217,6 +412,7 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
             {assessment && (
               <QuestionForm
                 assessmentId={id}
+                onSubmit={handleAddQuestion}
                 onSuccess={() => {
                   setIsAddingQuestion(false);
                   fetchAssessment();
@@ -241,92 +437,35 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {questions.map((question, index) => (
-              <motion.div
-                key={question.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gray-800 rounded-lg p-6"
+          <>
+            {isSavingOrder && (
+              <div className="mb-4 p-2 bg-blue-500/10 text-blue-500 rounded-md text-center">
+                Saving question order...
+              </div>
+            )}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext 
+                items={questions.map(q => q.id)}
+                strategy={verticalListSortingStrategy}
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 pr-4">
-                    <div className="flex items-center mb-2">
-                      <span className="text-sm font-medium text-gray-400 mr-2">
-                        Question {index + 1}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 text-xs rounded-full ${
-                          getQuestionTypeColor(question.type)
-                        }`}
-                      >
-                        {question.type}
-                      </span>
-                    </div>
-                    <p className="text-lg font-medium text-white mb-3">
-                      {question.question}
-                    </p>
-                    
-                    {question.type === "multiple-choice" && question.options && (
-                      <div className="space-y-2 mt-3">
-                        <h4 className="text-sm font-medium text-gray-400">
-                          Options:
-                        </h4>
-                        <ul className="space-y-1 pl-5">
-                          {(() => {
-                            // Safely extract options as an array
-                            let options = [];
-                            if (Array.isArray(question.options)) {
-                              options = question.options;
-                            } else if (typeof question.options === 'object' && question.options !== null) {
-                              options = Object.values(question.options);
-                            }
-                            
-                            return options.map((option: any) => {
-                              if (!option || !option.id) {
-                                console.warn('Invalid option:', option);
-                                return null;
-                              }
-                              
-                              return (
-                                <li
-                                  key={option.id}
-                                  className={`text-sm ${
-                                    option.isCorrect
-                                      ? "text-green-500"
-                                      : "text-gray-300"
-                                  }`}
-                                >
-                                  {option.text || '[No text]'}{" "}
-                                  {option.isCorrect && (
-                                    <span className="text-green-500">✓</span>
-                                  )}
-                                </li>
-                              );
-                            });
-                          })()}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEditQuestion(question)}
-                      className="p-2 text-blue-400 hover:text-blue-300"
-                    >
-                      <FaEdit className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuestion(question.id)}
-                      className="p-2 text-red-400 hover:text-red-300"
-                    >
-                      <FaTrash className="w-5 h-5" />
-                    </button>
-                  </div>
+                <div className="space-y-6">
+                  {questions.map((question, index) => (
+                    <SortableQuestionItem
+                      key={question.id}
+                      question={question}
+                      index={index}
+                      onEdit={handleEditQuestion}
+                      onDelete={handleDeleteQuestion}
+                    />
+                  ))}
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </div>
     </div>

@@ -24,7 +24,6 @@ export default function QuestionForm({
     type: "multiple-choice",
     options: [],
     points: 1,
-    order: 0,
     assessmentId
   });
 
@@ -100,12 +99,11 @@ export default function QuestionForm({
         <select
           value={formData.type}
           onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-          className="w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
         >
           <option value="multiple-choice">Multiple Choice</option>
           <option value="coding">Coding</option>
           <option value="text">Text</option>
-          <option value="true-false">True/False</option>
         </select>
       </div>
 
@@ -189,20 +187,6 @@ export default function QuestionForm({
           onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
           className="w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           min="1"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Order
-        </label>
-        <input
-          type="number"
-          value={formData.order}
-          onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
-          className="w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          min="0"
           required
         />
       </div>
