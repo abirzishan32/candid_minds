@@ -527,6 +527,11 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
           
           {currentQuestion?.type === "multiple-choice" && (
             <div className="space-y-3">
+              {currentQuestion.answerType === "multiple" && (
+                <div className="mb-4 p-3 bg-blue-500/10 text-blue-400 rounded-md">
+                  <p className="text-sm">This question has multiple correct answers. Select all that apply.</p>
+                </div>
+              )}
               {currentQuestion.options?.map((option) => {
                 const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
                 
