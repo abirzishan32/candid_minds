@@ -21,7 +21,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -66,7 +68,7 @@ function SortableQuestionItem({ question, index, onEdit, onDelete }: SortableQue
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: transition || 'transform 200ms ease',
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 999 : 1,
   };
@@ -76,8 +78,13 @@ function SortableQuestionItem({ question, index, onEdit, onDelete }: SortableQue
       ref={setNodeRef}
       style={style}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`bg-gray-800 rounded-lg p-6 ${isDragging ? 'border-2 border-blue-500' : ''}`}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+      }}
+      className={`bg-gray-800 rounded-lg p-6 ${
+        isDragging ? 'border-2 border-blue-500 ring-2 ring-blue-500/20' : ''
+      }`}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 pr-4">
@@ -85,9 +92,16 @@ function SortableQuestionItem({ question, index, onEdit, onDelete }: SortableQue
             <div 
               {...attributes} 
               {...listeners} 
-              className="mr-3 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-300"
+              className="mr-3 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-300 transition-colors"
             >
-              <FaGripVertical className="w-5 h-5" />
+              <motion.div
+                animate={{ 
+                  y: isDragging ? [0, -2, 0] : 0,
+                  transition: isDragging ? { repeat: Infinity, duration: 1 } : {}
+                }}
+              >
+                <FaGripVertical className="w-5 h-5" />
+              </motion.div>
             </div>
             <span className="text-sm font-medium text-gray-400 mr-2">
               Question {index + 1}
@@ -173,6 +187,8 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
   const [error, setError] = useState<string | null>(null);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeQuestion, setActiveQuestion] = useState<AssessmentQuestion | null>(null);
 
   // For drag and drop
   const sensors = useSensors(
@@ -275,6 +291,15 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
     router.push(`/manage-skill-assessment/${id}/questions/${question.id}`);
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    const question = questions.find(q => q.id === active.id);
+    if (question) {
+      setActiveQuestion(question);
+    }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
@@ -316,6 +341,9 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
         setIsSavingOrder(false);
       }
     }
+
+    setActiveId(null);
+    setActiveQuestion(null);
   };
 
   if (loading) {
@@ -446,6 +474,7 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
               <SortableContext 
@@ -464,6 +493,38 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
                   ))}
                 </div>
               </SortableContext>
+              <DragOverlay>
+                {activeId ? (
+                  <motion.div
+                    initial={{ scale: 1, opacity: 0.8 }}
+                    animate={{ scale: 1.05, opacity: 1 }}
+                    className="bg-gray-800 rounded-lg p-6 border-2 border-blue-500 ring-2 ring-blue-500/20 shadow-lg"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 pr-4">
+                        <div className="flex items-center mb-2">
+                          <div className="mr-3 text-gray-400">
+                            <FaGripVertical className="w-5 h-5" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-400 mr-2">
+                            Question {questions.findIndex(q => q.id === activeId) + 1}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 text-xs rounded-full ${
+                              getQuestionTypeColor(activeQuestion?.type || '')
+                            }`}
+                          >
+                            {activeQuestion?.type}
+                          </span>
+                        </div>
+                        <p className="text-lg font-medium text-white mb-3">
+                          {activeQuestion?.question}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </DragOverlay>
             </DndContext>
           </>
         )}
