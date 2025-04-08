@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { useResume } from "@/app/(root)/resume-builder/contexts/ResumeContext";
 import { GraduationCap, Plus, Trash, ChevronDown, ChevronUp } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 
 export default function EducationForm() {
   const { resumeData, updateEducation, addEducation, removeEducation } = useResume();
@@ -126,24 +128,22 @@ export default function EducationForm() {
                         <label className="block text-sm font-medium text-gray-300 mb-1">
                           Start Date
                         </label>
-                        <input
-                          type="text"
-                          value={edu.startDate || ""}
-                          onChange={(e) => handleChange(edu.id, "startDate", e.target.value)}
-                          className="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="MM/YYYY"
+                        <DatePicker
+                          date={edu.startDate ? new Date(edu.startDate) : undefined}
+                          onDateChange={(date) => handleChange(edu.id, "startDate", format(date, "MMMM yyyy"))}
+                          className="w-full"
+                          placeholder="Select start date"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">
                           End Date
                         </label>
-                        <input
-                          type="text"
-                          value={edu.endDate || ""}
-                          onChange={(e) => handleChange(edu.id, "endDate", e.target.value)}
-                          className="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="MM/YYYY or Present"
+                        <DatePicker
+                          date={edu.endDate ? new Date(edu.endDate) : undefined}
+                          onDateChange={(date) => handleChange(edu.id, "endDate", format(date, "MMMM yyyy"))}
+                          className="w-full"
+                          placeholder="Select end date"
                         />
                       </div>
                     </div>

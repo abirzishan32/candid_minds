@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { useResume } from "@/app/(root)/resume-builder/contexts/ResumeContext";
 import { FolderGit2, Plus, Trash, ChevronDown, ChevronUp, Link, Calendar } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 
 export default function ProjectsForm() {
   const { resumeData, updateProject, addProject, removeProject } = useResume();
@@ -141,35 +143,23 @@ export default function ProjectsForm() {
                         <label className="block text-sm font-medium text-gray-300 mb-1">
                           Start Date
                         </label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Calendar size={16} className="text-gray-400" />
-                          </span>
-                          <input
-                            type="text"
-                            value={project.startDate || ""}
-                            onChange={(e) => handleChange(project.id, "startDate", e.target.value)}
-                            className="w-full bg-gray-700 text-white border border-gray-600 rounded-md pl-10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                            placeholder="MM/YYYY"
-                          />
-                        </div>
+                        <DatePicker
+                          date={project.startDate ? new Date(project.startDate) : undefined}
+                          onDateChange={(date) => handleChange(project.id, "startDate", format(date, "MMMM yyyy"))}
+                          className="w-full"
+                          placeholder="Select start date"
+                        />
                       </div>
                       <div className="relative">
                         <label className="block text-sm font-medium text-gray-300 mb-1">
                           End Date
                         </label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Calendar size={16} className="text-gray-400" />
-                          </span>
-                          <input
-                            type="text"
-                            value={project.endDate || ""}
-                            onChange={(e) => handleChange(project.id, "endDate", e.target.value)}
-                            className="w-full bg-gray-700 text-white border border-gray-600 rounded-md pl-10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                            placeholder="MM/YYYY or Present"
-                          />
-                        </div>
+                        <DatePicker
+                          date={project.endDate ? new Date(project.endDate) : undefined}
+                          onDateChange={(date) => handleChange(project.id, "endDate", format(date, "MMMM yyyy"))}
+                          className="w-full"
+                          placeholder="Select end date or leave empty"
+                        />
                       </div>
                     </div>
                   </div>

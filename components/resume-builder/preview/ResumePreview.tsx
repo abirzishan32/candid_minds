@@ -12,6 +12,7 @@ import EducationPreview from "./sections/EducationPreview";
 import ProjectsPreview from "./sections/ProjectsPreview";
 import SkillsPreview from "./sections/SkillsPreview";
 import CertificationsPreview from "./sections/CertificationsPreview";
+import { SectionKey } from "@/app/(root)/resume-builder/types";
 
 const ResumePreview: React.FC = () => {
   const { resumeData, visibleSections = [] } = useResume();
@@ -35,6 +36,29 @@ const ResumePreview: React.FC = () => {
   
   // Determine if any sections are visible
   const hasVisibleSections = visibleSections && visibleSections.length > 0;
+
+  // Map section keys to their respective components
+  const renderSection = (sectionKey: SectionKey) => {
+    switch (sectionKey) {
+      case "workExperiences":
+        return <WorkExperiencePreview key={sectionKey} />;
+      case "education":
+        return <EducationPreview key={sectionKey} />;
+      case "projects":
+        return <ProjectsPreview key={sectionKey} />;
+      case "skills":
+        return <SkillsPreview key={sectionKey} />;
+      case "certifications":
+        return <CertificationsPreview key={sectionKey} />;
+      default:
+        return null;
+    }
+  };
+
+  // Get sections in the correct order
+  const orderedSections = resumeData.sections
+    .filter(section => section.enabled)
+    .map(section => section.id);
 
   return (
     <div className="flex flex-col h-full">
@@ -73,11 +97,7 @@ const ResumePreview: React.FC = () => {
                 <GeneralInfoPreview />
                 
                 <div className="space-y-6" style={{ marginTop: `${theme.spacing.sectionGap}px` }}>
-                  <WorkExperiencePreview />
-                  <EducationPreview />
-                  <ProjectsPreview />
-                  <SkillsPreview />
-                  <CertificationsPreview />
+                  {orderedSections.map(sectionKey => renderSection(sectionKey))}
                 </div>
               </>
             ) : (

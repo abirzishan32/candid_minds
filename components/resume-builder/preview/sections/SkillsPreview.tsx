@@ -3,7 +3,7 @@
 import React from "react";
 import { useResume } from "@/app/(root)/resume-builder/contexts/ResumeContext";
 import { useTheme } from "@/app/(root)/resume-builder/contexts/ThemeContext";
-import { Code } from "lucide-react";
+import { Code, Star } from "lucide-react";
 
 const SkillsPreview: React.FC = () => {
   const { resumeData, visibleSections = [] } = useResume();
@@ -13,33 +13,39 @@ const SkillsPreview: React.FC = () => {
     return null;
   }
 
-  const getSkillLevelStyle = (level: string | undefined) => {
-    if (!level) return {};
+  const renderStars = (level: string | undefined) => {
+    if (!level) return null;
     
-    const baseColor = theme.colors?.primary || "#3b82f6";
-    let opacity = 1.0;
+    const primaryColor = theme.colors?.primary || "#3b82f6";
+    let starCount = 3; // Default
     
     switch (level) {
       case "Beginner":
-        opacity = 0.4;
+        starCount = 1;
         break;
       case "Intermediate":
-        opacity = 0.6;
+        starCount = 2;
         break;
       case "Advanced":
-        opacity = 0.8;
+        starCount = 3;
         break;
       case "Expert":
-        opacity = 1.0;
+        starCount = 4;
         break;
-      default:
-        opacity = 0.7;
     }
     
-    return {
-      backgroundColor: baseColor,
-      opacity,
-    };
+    return (
+      <div className="flex ml-2">
+        {Array(4).fill(0).map((_, i) => (
+          <Star 
+            key={i} 
+            size={12} 
+            className={i < starCount ? "fill-current" : "text-gray-300"} 
+            style={{ color: i < starCount ? primaryColor : "#e5e7eb" }}
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -57,9 +63,7 @@ const SkillsPreview: React.FC = () => {
             style={{ backgroundColor: 'rgba(245, 245, 245, 0.7)' }}
           >
             <span>{skill.name}</span>
-            {skill.level && (
-              <div className="ml-2 w-2 h-2 rounded-full" style={getSkillLevelStyle(skill.level)}></div>
-            )}
+            {renderStars(skill.level)}
           </div>
         ))}
       </div>

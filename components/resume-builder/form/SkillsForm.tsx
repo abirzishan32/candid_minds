@@ -5,7 +5,7 @@ import { useResume } from "@/app/(root)/resume-builder/contexts/ResumeContext";
 import { Code, Plus, Trash, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function SkillsForm() {
-  const { resumeData, updateSkill, addSkill, removeSkill } = useResume();
+  const { resumeData, updateSkill, addSkill, removeSkill, reorderSkills } = useResume();
 
   const handleChange = (id: string, field: string, value: string | number) => {
     updateSkill(id, { [field]: value });
@@ -24,17 +24,7 @@ export default function SkillsForm() {
     }
 
     const newIndex = direction === 'up' ? index - 1 : index + 1;
-    const skillsArray = [...resumeData.skills];
-    
-    // Swap the items
-    const temp = skillsArray[index];
-    skillsArray[index] = skillsArray[newIndex];
-    skillsArray[newIndex] = temp;
-    
-    // Update each skill with its new order property (if needed)
-    skillsArray.forEach((skill, idx) => {
-      updateSkill(skill.id, { order: idx });
-    });
+    reorderSkills(index, newIndex);
   };
 
   return (
@@ -94,20 +84,23 @@ export default function SkillsForm() {
                   <button
                     onClick={() => moveSkill(index, 'up')}
                     disabled={index === 0}
-                    className={`p-1 rounded hover:bg-gray-700 ${index === 0 ? 'text-gray-600' : 'text-gray-400'}`}
+                    className={`p-1 rounded hover:bg-gray-700 ${index === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
+                    aria-label="Move skill up"
                   >
                     <ArrowUp size={18} />
                   </button>
                   <button
                     onClick={() => moveSkill(index, 'down')}
                     disabled={index === resumeData.skills.length - 1}
-                    className={`p-1 rounded hover:bg-gray-700 ${index === resumeData.skills.length - 1 ? 'text-gray-600' : 'text-gray-400'}`}
+                    className={`p-1 rounded hover:bg-gray-700 ${index === resumeData.skills.length - 1 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
+                    aria-label="Move skill down"
                   >
                     <ArrowDown size={18} />
                   </button>
                   <button
                     onClick={() => removeSkill(skill.id)}
-                    className="p-1 rounded hover:bg-gray-700 text-red-400"
+                    className="p-1 rounded hover:bg-gray-700 text-red-400 hover:text-red-300"
+                    aria-label="Remove skill"
                   >
                     <Trash size={18} />
                   </button>

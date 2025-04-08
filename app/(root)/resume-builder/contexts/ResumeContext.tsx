@@ -56,6 +56,7 @@ interface ResumeContextType {
   removeOtherInfo: (id: string) => void;
   updateSectionOrder: (sections: SectionOrder[]) => void;
   toggleSectionVisibility: (id: SectionKey) => void;
+  reorderSkills: (fromIndex: number, toIndex: number) => void;
 }
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
@@ -284,6 +285,28 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
       .map(section => section.id);
   };
 
+  const reorderSkills = (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex < 0 || 
+      toIndex < 0 || 
+      fromIndex >= resumeData.skills.length || 
+      toIndex >= resumeData.skills.length
+    ) {
+      return; // Invalid indices
+    }
+
+    setResumeData((prev) => {
+      const newSkills = [...prev.skills];
+      const [movedSkill] = newSkills.splice(fromIndex, 1);
+      newSkills.splice(toIndex, 0, movedSkill);
+      
+      return {
+        ...prev,
+        skills: newSkills,
+      };
+    });
+  };
+
   const value = {
     resumeData,
     visibleSections: getVisibleSections(),
@@ -308,6 +331,7 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
     removeOtherInfo,
     updateSectionOrder,
     toggleSectionVisibility,
+    reorderSkills,
   };
 
   return <ResumeContext.Provider value={value}>{children}</ResumeContext.Provider>;

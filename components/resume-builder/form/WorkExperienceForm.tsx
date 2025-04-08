@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { useResume } from "@/app/(root)/resume-builder/contexts/ResumeContext";
 import { Plus, X, ChevronDown, ChevronUp, Briefcase } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 
 export default function WorkExperienceForm() {
   const { resumeData, addWorkExperience, updateWorkExperience, removeWorkExperience } = useResume();
@@ -135,12 +137,11 @@ export default function WorkExperienceForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-300">Start Date</label>
-                <input
-                  type="text"
-                  value={experience.startDate}
-                  onChange={(e) => handleChange(experience.id, "startDate", e.target.value)}
-                  className="w-full p-2 border border-gray-700 rounded-md bg-gray-800 text-white placeholder-gray-500"
-                  placeholder="June 2020"
+                <DatePicker
+                  date={experience.startDate ? new Date(experience.startDate) : undefined}
+                  onDateChange={(date) => handleChange(experience.id, "startDate", format(date, "MMMM yyyy"))}
+                  className="w-full"
+                  placeholder="Select start date"
                 />
               </div>
               
@@ -157,14 +158,17 @@ export default function WorkExperienceForm() {
                     <span className="text-sm text-gray-300">Current</span>
                   </div>
                 </div>
-                <input
-                  type="text"
-                  value={experience.endDate}
-                  onChange={(e) => handleChange(experience.id, "endDate", e.target.value)}
-                  disabled={experience.current}
-                  className="w-full p-2 border border-gray-700 rounded-md bg-gray-800 text-white placeholder-gray-500 disabled:bg-gray-700 disabled:text-gray-500"
-                  placeholder={experience.current ? "Present" : "June 2023"}
-                />
+                {experience.current ? (
+                  <div className="w-full p-2 border border-gray-700 rounded-md bg-gray-800 text-gray-400">Present</div>
+                ) : (
+                  <DatePicker
+                    date={experience.endDate ? new Date(experience.endDate) : undefined}
+                    onDateChange={(date) => handleChange(experience.id, "endDate", format(date, "MMMM yyyy"))}
+                    className="w-full"
+                    placeholder="Select end date"
+                    disabled={experience.current}
+                  />
+                )}
               </div>
             </div>
             
