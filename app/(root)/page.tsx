@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 const Page = () => {
-    redirect('/interview-home');
+    redirect('/job-market');
     return null;
 }
 
