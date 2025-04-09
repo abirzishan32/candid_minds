@@ -13,7 +13,7 @@ export default function SignOutButton() {
       setIsLoading(true);
       await signOut();
       router.refresh(); // Refresh the page to update auth state
-      router.push('/interview-home'); // Redirect to home after logout
+      router.push('/'); // Redirect to home after logout
     } catch (error) {
       console.error('Failed to sign out:', error);
     } finally {

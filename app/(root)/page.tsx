@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
 
 const Page = () => {
-    redirect('/job-market');
-    return null;
+
+
+    return (
+        <div>
+            <h1>Hello</h1>
+        </div>
+    )
 }
 
 export default Page
