@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FaCamera, FaEye, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaCamera, FaEye, FaTimes, FaCheck, FaWindowMaximize } from 'react-icons/fa';
 
 interface ProctorConsentModalProps {
   isOpen: boolean;
@@ -47,12 +47,16 @@ const ProctorConsentModal: React.FC<ProctorConsentModalProps> = ({
               <span>Our system tracks your eye movements to detect if you're looking away from the screen</span>
             </li>
             <li className="flex items-start">
+              <FaWindowMaximize className="text-yellow-500 mt-1 mr-2 flex-shrink-0" />
+              <span>Switching browser tabs during the assessment will result in immediate disqualification</span>
+            </li>
+            <li className="flex items-start">
               <FaCheck className="text-green-500 mt-1 mr-2 flex-shrink-0" />
               <span>Your data is processed locally and not stored or shared</span>
             </li>
             <li className="flex items-start">
               <FaTimes className="text-red-500 mt-1 mr-2 flex-shrink-0" />
-              <span>Looking away from the screen or not having your face visible 5 times will result in immediate disqualification</span>
+              <span>Looking away from the screen or not having your face visible for more than 5 seconds will result in immediate disqualification</span>
             </li>
           </ul>
         </div>

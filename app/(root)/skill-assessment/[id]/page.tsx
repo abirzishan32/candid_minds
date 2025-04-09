@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaClock, FaCheck, FaTimes, FaArrowLeft, FaArrowRight, FaVideo, FaEye } from "react-icons/fa";
@@ -55,6 +55,48 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
+
+  // Enhance handleCheatingDetected to accept a reason using useCallback
+  const handleCheatingDetected = useCallback((reason: string = "Potential academic integrity violation") => {
+    // Stop the timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    // Clear localStorage timer data
+    localStorage.removeItem(`assessment_end_time_${params.id}`);
+    
+    // Set assessment status to disqualified
+    setAssessmentStatus("disqualified");
+    
+    // Store the reason for disqualification
+    localStorage.setItem(`assessment_disqualification_reason_${params.id}`, reason);
+    
+    toast.error(`Assessment terminated due to ${reason}`, {
+      duration: 5000,
+    });
+  }, [params.id]);
+
+  // Add tab switching detection
+  useEffect(() => {
+    if (assessmentStatus !== "in-progress") return;
+    
+    // Handler for tab visibility change
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && assessmentStatus === "in-progress") {
+        console.log("Tab switching detected - triggering disqualification");
+        handleCheatingDetected("Tab switching detected");
+      }
+    };
+    
+    // Add event listeners
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [assessmentStatus, params.id, handleCheatingDetected]);
 
   // Fetch assessment data
   useEffect(() => {
@@ -209,24 +251,6 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
     }, 3000);
   };
 
-  // Handle cheating detection
-  const handleCheatingDetected = () => {
-    // Stop the timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
-    // Clear localStorage timer data
-    localStorage.removeItem(`assessment_end_time_${params.id}`);
-    
-    // Set assessment status to disqualified
-    setAssessmentStatus("disqualified");
-    
-    toast.error("Assessment terminated due to potential academic integrity violation", {
-      duration: 5000,
-    });
-  };
-
   // Toggle showing the proctor video
   const toggleProctorVideo = () => {
     setShowProctorVideo(prev => !prev);
@@ -356,7 +380,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
     <div className="min-h-screen bg-gray-900 p-8">
       <div className="max-w-4xl mx-auto">
         {assessmentStatus === "disqualified" ? (
-          <DisqualificationScreen />
+          <DisqualificationScreen assessmentId={params.id} />
         ) : loading ? (
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-800 rounded w-1/4"></div>
