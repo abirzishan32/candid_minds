@@ -3,13 +3,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaClock, FaCheck, FaTimes, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { FaClock, FaCheck, FaTimes, FaArrowLeft, FaArrowRight, FaVideo, FaEye } from "react-icons/fa";
 import { toast } from "sonner";
 import { getSkillAssessmentById } from "@/lib/actions/skill-assessment.action";
 import { SkillAssessment, AssessmentQuestion } from "@/lib/actions/skill-assessment.action";
+import EyeTrackingProctor from "@/components/skill-assessment/EyeTrackingProctor";
+import ProctorConsentModal from "@/components/skill-assessment/ProctorConsentModal";
+import DisqualificationScreen from "@/components/skill-assessment/DisqualificationScreen";
 
 // Assessment status types
-type AssessmentStatus = "intro" | "in-progress" | "results";
+type AssessmentStatus = "intro" | "in-progress" | "results" | "disqualified";
 
 // User answer type
 type UserAnswer = {
@@ -44,6 +47,11 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Anti-cheating states
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [proctorActive, setProctorActive] = useState(false);
+  const [showProctorVideo, setShowProctorVideo] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -157,8 +165,8 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
     };
   }, [assessmentStatus, assessment, params.id]);
 
-  // Start the assessment
-  const startAssessment = () => {
+  // Show webcam consent modal before starting the assessment
+  const prepareToStartAssessment = () => {
     if (!assessment) {
       toast.error("Assessment data is not available");
       return;
@@ -173,10 +181,55 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
       return;
     }
     
+    // Show the consent modal
+    setShowConsentModal(true);
+  };
+  
+  // Start the assessment after consent
+  const startAssessment = () => {
     setAssessmentStatus("in-progress");
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     startTimeRef.current = null; // Reset start time
+    setProctorActive(true); // Enable proctoring
+  };
+
+  // Handle webcam consent
+  const handleConsentAccept = () => {
+    setShowConsentModal(false);
+    startAssessment();
+  };
+  
+  const handleConsentDecline = () => {
+    setShowConsentModal(false);
+    toast.error("Webcam access is required to take this assessment");
+    // Navigate back to the assessment list
+    setTimeout(() => {
+      router.push('/skill-assessment');
+    }, 3000);
+  };
+
+  // Handle cheating detection
+  const handleCheatingDetected = () => {
+    // Stop the timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    // Clear localStorage timer data
+    localStorage.removeItem(`assessment_end_time_${params.id}`);
+    
+    // Set assessment status to disqualified
+    setAssessmentStatus("disqualified");
+    
+    toast.error("Assessment terminated due to potential academic integrity violation", {
+      duration: 5000,
+    });
+  };
+
+  // Toggle showing the proctor video
+  const toggleProctorVideo = () => {
+    setShowProctorVideo(prev => !prev);
   };
 
   // Handle answer submission
@@ -296,138 +349,109 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 p-8">
-        <div className="max-w-4xl mx-auto">
+  // Current question
+  const currentQuestion = questions[currentQuestionIndex];
+
+  return (
+    <div className="min-h-screen bg-gray-900 p-8">
+      <div className="max-w-4xl mx-auto">
+        {assessmentStatus === "disqualified" ? (
+          <DisqualificationScreen />
+        ) : loading ? (
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-800 rounded w-1/4"></div>
             <div className="h-4 bg-gray-800 rounded w-1/2"></div>
             <div className="h-64 bg-gray-800 rounded-lg"></div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-900 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-red-500 text-center py-8">{error}</div>
-          <button
-            onClick={() => router.push('/skill-assessment')}
-            className="mx-auto block px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-          >
-            Back to Assessments
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // If assessment not found
-  if (!assessment) {
-    return (
-      <div className="min-h-screen bg-gray-900 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-red-500 text-center py-8">Assessment not found</div>
-          <button
-            onClick={() => router.push('/skill-assessment')}
-            className="mx-auto block px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-          >
-            Back to Assessments
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Current question
-  const currentQuestion = questions[currentQuestionIndex];
-  
-  // Introduction screen
-  if (assessmentStatus === "intro") {
-    return (
-      <div className="min-h-screen bg-gray-900 p-8">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => router.push('/skill-assessment')}
-            className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 mb-8"
-          >
-            <FaArrowLeft className="w-4 h-4" />
-            <span>Back to Assessments</span>
-          </button>
-          
-          <div className="bg-gray-800 rounded-lg p-8 mb-8">
-            <h1 className="text-3xl font-bold text-white mb-4">{assessment.title}</h1>
-            <p className="text-gray-300 mb-6">{assessment.description}</p>
-            
-            {assessment.longDescription && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-white mb-2">About this Assessment</h2>
-                <p className="text-gray-300">{assessment.longDescription}</p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gray-700 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-white mb-2">Assessment Details</h3>
-                <ul className="space-y-2 text-gray-300">
-                  <li className="flex items-center justify-between">
-                    <span>Category:</span>
-                    <span className="text-blue-400">{assessment.category}</span>
-                  </li>
-                  <li className="flex items-center justify-between">
-                    <span>Difficulty:</span>
-                    <span className="text-blue-400">{assessment.difficulty}</span>
-                  </li>
-                  <li className="flex items-center justify-between">
-                    <span>Questions:</span>
-                    <span className="text-blue-400">{questions.length}</span>
-                  </li>
-                  <li className="flex items-center justify-between">
-                    <span>Time Limit:</span>
-                    <span className="text-blue-400">{assessment.duration} minutes</span>
-                  </li>
-                  <li className="flex items-center justify-between">
-                    <span>Passing Score:</span>
-                    <span className="text-blue-400">{assessment.passPercentage}%</span>
-                  </li>
-                </ul>
-              </div>
-              
-              {assessment.prerequisites && assessment.prerequisites.length > 0 && (
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Prerequisites</h3>
-                  <ul className="list-disc pl-5 text-gray-300">
-                    {assessment.prerequisites.map((prereq, index) => (
-                      <li key={index}>{prereq}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            
+        ) : error ? (
+          <div>
+            <div className="text-red-500 text-center py-8">{error}</div>
             <button
-              onClick={startAssessment}
-              className="w-full py-3 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors"
+              onClick={() => router.push('/skill-assessment')}
+              className="mx-auto block px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600"
             >
-              Start Assessment
+              Back to Assessments
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
-  
-  // Results screen
-  if (assessmentStatus === "results") {
-    return (
-      <div className="min-h-screen bg-gray-900 p-8">
-        <div className="max-w-4xl mx-auto">
+        ) : !assessment ? (
+          <div>
+            <div className="text-red-500 text-center py-8">Assessment not found</div>
+            <button
+              onClick={() => router.push('/skill-assessment')}
+              className="mx-auto block px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              Back to Assessments
+            </button>
+          </div>
+        ) : assessmentStatus === "intro" ? (
+          <div>
+            <button
+              onClick={() => router.push('/skill-assessment')}
+              className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 mb-8"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              <span>Back to Assessments</span>
+            </button>
+            
+            <div className="bg-gray-800 rounded-lg p-8 mb-8">
+              <h1 className="text-3xl font-bold text-white mb-4">{assessment.title}</h1>
+              <p className="text-gray-300 mb-6">{assessment.description}</p>
+              
+              {assessment.longDescription && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-white mb-2">About this Assessment</h2>
+                  <p className="text-gray-300">{assessment.longDescription}</p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-gray-700 rounded-lg p-4">
+                  <h3 className="text-lg font-medium text-white mb-2">Assessment Details</h3>
+                  <ul className="space-y-2 text-gray-300">
+                    <li className="flex items-center justify-between">
+                      <span>Category:</span>
+                      <span className="text-blue-400">{assessment.category}</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span>Difficulty:</span>
+                      <span className="text-blue-400">{assessment.difficulty}</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span>Questions:</span>
+                      <span className="text-blue-400">{questions.length}</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span>Time Limit:</span>
+                      <span className="text-blue-400">{assessment.duration} minutes</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span>Passing Score:</span>
+                      <span className="text-blue-400">{assessment.passPercentage}%</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                {assessment.prerequisites && assessment.prerequisites.length > 0 && (
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <h3 className="text-lg font-medium text-white mb-2">Prerequisites</h3>
+                    <ul className="list-disc pl-5 text-gray-300">
+                      {assessment.prerequisites.map((prereq, index) => (
+                        <li key={index}>{prereq}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={prepareToStartAssessment}
+                className="w-full py-3 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors"
+              >
+                Start Assessment
+              </button>
+            </div>
+          </div>
+        ) : assessmentStatus === "results" ? (
           <div className="bg-gray-800 rounded-lg p-8">
             <h1 className="text-3xl font-bold text-white mb-4">Assessment Results</h1>
             
@@ -501,192 +525,232 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-  
-  // Assessment in progress - Show question
-  return (
-    <div className="min-h-screen bg-gray-900 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-gray-300">
-            Question {currentQuestionIndex + 1} of {questions.length}
-          </div>
-          <div className="flex items-center bg-red-500/10 text-red-500 px-3 py-1 rounded-full">
-            <FaClock className="w-4 h-4 mr-2" />
-            <span>{formatTime(remainingTime)}</span>
-          </div>
-        </div>
-        
-        <div className="bg-gray-800 rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
-            {currentQuestion?.question}
-          </h2>
-          
-          {currentQuestion?.type === "multiple-choice" && (
-            <div className="space-y-3">
-              {currentQuestion.answerType === "multiple" && (
-                <div className="mb-4 p-3 bg-blue-500/10 text-blue-400 rounded-md">
-                  <p className="text-sm">This question has multiple correct answers. Select all that apply.</p>
+        ) : (
+          // In-progress UI
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div className="text-gray-300">
+                Question {currentQuestionIndex + 1} of {questions.length}
+              </div>
+              <div className="flex items-center bg-red-500/10 text-red-500 px-3 py-1 rounded-full">
+                <FaClock className="w-4 h-4 mr-2" />
+                <span>{formatTime(remainingTime)}</span>
+              </div>
+            </div>
+            
+            <div className="bg-gray-800 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-white mb-4">
+                {currentQuestion?.question}
+              </h2>
+              
+              {currentQuestion?.type === "multiple-choice" && (
+                <div className="space-y-3">
+                  {currentQuestion.answerType === "multiple" && (
+                    <div className="mb-4 p-3 bg-blue-500/10 text-blue-400 rounded-md">
+                      <p className="text-sm">This question has multiple correct answers. Select all that apply.</p>
+                    </div>
+                  )}
+                  {currentQuestion.options?.map((option) => {
+                    const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
+                    
+                    return (
+                      <div
+                        key={option.id}
+                        onClick={() => {
+                          const selectedOptions = userAnswers.find(a => 
+                            a.questionId === currentQuestion.id
+                          )?.selectedOptions || [];
+                          
+                          let newSelectedOptions: string[];
+                          
+                          if (currentQuestion.answerType === "single") {
+                            // For single choice, replace the selection
+                            newSelectedOptions = [option.id];
+                          } else {
+                            // For multi-choice, toggle the selection
+                            if (selectedOptions.includes(option.id)) {
+                              newSelectedOptions = selectedOptions.filter(id => id !== option.id);
+                            } else {
+                              newSelectedOptions = [...selectedOptions, option.id];
+                            }
+                          }
+                          
+                          handleAnswerSubmit({
+                            questionId: currentQuestion.id,
+                            selectedOptions: newSelectedOptions
+                          });
+                        }}
+                        className={`flex items-center p-4 rounded-lg cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        }`}
+                      >
+                        <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
+                          isSelected ? "bg-white text-blue-500" : "bg-gray-600 text-gray-300"
+                        }`}>
+                          {isSelected && <FaCheck className="w-3 h-3" />}
+                        </div>
+                        <span>{option.text}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-              {currentQuestion.options?.map((option) => {
-                const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
-                
-                return (
-                  <div
-                    key={option.id}
-                    onClick={() => {
-                      const selectedOptions = userAnswers.find(a => 
-                        a.questionId === currentQuestion.id
-                      )?.selectedOptions || [];
-                      
-                      let newSelectedOptions: string[];
-                      
-                      if (currentQuestion.answerType === "single") {
-                        // For single choice, replace the selection
-                        newSelectedOptions = [option.id];
-                      } else {
-                        // For multi-choice, toggle the selection
-                        if (selectedOptions.includes(option.id)) {
-                          newSelectedOptions = selectedOptions.filter(id => id !== option.id);
+              
+              {currentQuestion?.type === "true-false" && (
+                <div className="space-y-3">
+                  {currentQuestion.options?.map((option) => {
+                    const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
+                    
+                    return (
+                      <div
+                        key={option.id}
+                        onClick={() => {
+                          handleAnswerSubmit({
+                            questionId: currentQuestion.id,
+                            selectedOptions: [option.id]
+                          });
+                        }}
+                        className={`flex items-center p-4 rounded-lg cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        }`}
+                      >
+                        <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
+                          isSelected ? "bg-white text-blue-500" : "bg-gray-600 text-gray-300"
+                        }`}>
+                          {isSelected && <FaCheck className="w-3 h-3" />}
+                        </div>
+                        <span>{option.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {(currentQuestion?.type === "text" || currentQuestion?.type === "coding") && (
+                <div className="space-y-3">
+                  <textarea
+                    value={userAnswers.find(a => a.questionId === currentQuestion.id)?.text || ""}
+                    onChange={(e) => {
+                      setUserAnswers(prev => {
+                        const updatedAnswers = [...prev];
+                        const existingIndex = updatedAnswers.findIndex(a => a.questionId === currentQuestion.id);
+                        
+                        const updatedAnswer = {
+                          questionId: currentQuestion.id,
+                          selectedOptions: [],
+                          text: e.target.value
+                        };
+                        
+                        if (existingIndex >= 0) {
+                          updatedAnswers[existingIndex] = updatedAnswer;
                         } else {
-                          newSelectedOptions = [...selectedOptions, option.id];
+                          updatedAnswers.push(updatedAnswer);
                         }
-                      }
-                      
-                      handleAnswerSubmit({
-                        questionId: currentQuestion.id,
-                        selectedOptions: newSelectedOptions
+                        
+                        return updatedAnswers;
                       });
                     }}
-                    className={`flex items-center p-4 rounded-lg cursor-pointer transition-colors ${
-                      isSelected
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
-                      isSelected ? "bg-white text-blue-500" : "bg-gray-600 text-gray-300"
-                    }`}>
-                      {isSelected && <FaCheck className="w-3 h-3" />}
+                    rows={8}
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white"
+                    placeholder={currentQuestion.type === "coding" ? "Write your code here..." : "Write your answer here..."}
+                  />
+                  {currentQuestion.type === "coding" && currentQuestion.codeSnippet && (
+                    <div className="mt-3">
+                      <div className="text-sm font-medium text-gray-300 mb-1">
+                        Reference Code:
+                      </div>
+                      <pre className="bg-gray-900 p-4 rounded-md text-sm text-gray-300 overflow-x-auto">
+                        {currentQuestion.codeSnippet}
+                      </pre>
                     </div>
-                    <span>{option.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
-          {currentQuestion?.type === "true-false" && (
-            <div className="space-y-3">
-              {currentQuestion.options?.map((option) => {
-                const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
-                
-                return (
-                  <div
-                    key={option.id}
-                    onClick={() => {
-                      handleAnswerSubmit({
-                        questionId: currentQuestion.id,
-                        selectedOptions: [option.id]
-                      });
-                    }}
-                    className={`flex items-center p-4 rounded-lg cursor-pointer transition-colors ${
-                      isSelected
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
-                      isSelected ? "bg-white text-blue-500" : "bg-gray-600 text-gray-300"
-                    }`}>
-                      {isSelected && <FaCheck className="w-3 h-3" />}
-                    </div>
-                    <span>{option.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
-          {(currentQuestion?.type === "text" || currentQuestion?.type === "coding") && (
-            <div className="space-y-3">
-              <textarea
-                value={userAnswers.find(a => a.questionId === currentQuestion.id)?.text || ""}
-                onChange={(e) => {
-                  setUserAnswers(prev => {
-                    const updatedAnswers = [...prev];
-                    const existingIndex = updatedAnswers.findIndex(a => a.questionId === currentQuestion.id);
-                    
-                    const updatedAnswer = {
-                      questionId: currentQuestion.id,
-                      selectedOptions: [],
-                      text: e.target.value
-                    };
-                    
-                    if (existingIndex >= 0) {
-                      updatedAnswers[existingIndex] = updatedAnswer;
-                    } else {
-                      updatedAnswers.push(updatedAnswer);
-                    }
-                    
-                    return updatedAnswers;
-                  });
-                }}
-                rows={8}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white"
-                placeholder={currentQuestion.type === "coding" ? "Write your code here..." : "Write your answer here..."}
-              />
-              {currentQuestion.type === "coding" && currentQuestion.codeSnippet && (
-                <div className="mt-3">
-                  <div className="text-sm font-medium text-gray-300 mb-1">
-                    Reference Code:
-                  </div>
-                  <pre className="bg-gray-900 p-4 rounded-md text-sm text-gray-300 overflow-x-auto">
-                    {currentQuestion.codeSnippet}
-                  </pre>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-        
-        <div className="flex justify-between items-center">
-          <button
-            onClick={goToPreviousQuestion}
-            disabled={currentQuestionIndex === 0}
-            className={`flex items-center px-4 py-2 rounded-md ${
-              currentQuestionIndex === 0
-                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                : "bg-gray-700 text-white hover:bg-gray-600"
-            }`}
-          >
-            <FaArrowLeft className="w-4 h-4 mr-2" />
-            <span>Previous</span>
-          </button>
-          
-          {currentQuestionIndex < questions.length - 1 ? (
-            <button
-              onClick={goToNextQuestion}
-              className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-            >
-              <span>Next</span>
-              <FaArrowRight className="w-4 h-4 ml-2" />
-            </button>
-          ) : (
-            <button
-              onClick={submitAssessment}
-              className="flex items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-            >
-              <span>Submit Assessment</span>
-              <FaCheck className="w-4 h-4 ml-2" />
-            </button>
-          )}
-        </div>
+            
+            <div className="flex justify-between items-center">
+              <button
+                onClick={goToPreviousQuestion}
+                disabled={currentQuestionIndex === 0}
+                className={`flex items-center px-4 py-2 rounded-md ${
+                  currentQuestionIndex === 0
+                    ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                    : "bg-gray-700 text-white hover:bg-gray-600"
+                }`}
+              >
+                <FaArrowLeft className="w-4 h-4 mr-2" />
+                <span>Previous</span>
+              </button>
+              
+              {currentQuestionIndex < questions.length - 1 ? (
+                <button
+                  onClick={goToNextQuestion}
+                  className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                >
+                  <span>Next</span>
+                  <FaArrowRight className="w-4 h-4 ml-2" />
+                </button>
+              ) : (
+                <button
+                  onClick={submitAssessment}
+                  className="flex items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                >
+                  <span>Submit Assessment</span>
+                  <FaCheck className="w-4 h-4 ml-2" />
+                </button>
+              )}
+            </div>
+            
+            {/* Eye tracking components - Add these to the in-progress UI */}
+            <div className="hidden">
+              {proctorActive && !showProctorVideo && (
+                <EyeTrackingProctor
+                  isActive={proctorActive}
+                  onCheatingDetected={handleCheatingDetected}
+                  showVideo={false}
+                  disqualificationThreshold={5}
+                />
+              )}
+            </div>
+            
+            <div className="fixed bottom-4 right-4">
+              <div className="flex flex-col items-end space-y-2">
+                {proctorActive && showProctorVideo && (
+                  <div className="bg-gray-800 rounded-lg p-2 shadow-lg">
+                    <EyeTrackingProctor
+                      isActive={proctorActive}
+                      onCheatingDetected={handleCheatingDetected}
+                      showVideo={true}
+                      disqualificationThreshold={5}
+                    />
+                  </div>
+                )}
+                
+                {proctorActive && (
+                  <button
+                    onClick={toggleProctorVideo}
+                    className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full"
+                    title={showProctorVideo ? "Hide webcam" : "Show webcam"}
+                  >
+                    {showProctorVideo ? <FaVideo /> : <FaEye />}
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
+      
+      {/* Proctor consent modal */}
+      <ProctorConsentModal
+        isOpen={showConsentModal}
+        onAccept={handleConsentAccept}
+        onDecline={handleConsentDecline}
+      />
     </div>
   );
 } 
