@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FaCamera, FaEye, FaTimes, FaCheck, FaWindowMaximize } from 'react-icons/fa';
+import { FaCamera, FaEye, FaTimes, FaCheck, FaWindowMaximize, FaClone } from 'react-icons/fa';
+import { MdScreenshot } from 'react-icons/md';
 
 interface ProctorConsentModalProps {
   isOpen: boolean;
@@ -18,45 +19,52 @@ const ProctorConsentModal: React.FC<ProctorConsentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-gray-800 rounded-lg p-8 max-w-md w-full"
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-sm w-full shadow-2xl"
       >
-        <div className="flex items-center justify-center mb-6">
-          <div className="bg-blue-500/20 rounded-full p-4">
-            <FaCamera className="text-blue-500 text-3xl" />
+        <div className="flex items-center space-x-4 mb-5">
+          <div className="bg-blue-500/10 rounded-full p-3 flex-shrink-0">
+            <FaCamera className="text-blue-400 text-xl" />
           </div>
+          <h2 className="text-xl font-bold text-white">
+            Security Verification
+          </h2>
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-4 text-center">
-          Anti-Cheating Verification Required
-        </h2>
-
-        <p className="text-gray-300 mb-6">
-          This assessment requires webcam access to ensure academic integrity. 
-          We will use AI to verify you are not looking away from the screen during the assessment.
+        <p className="text-gray-300 text-sm mb-5 leading-relaxed">
+          Webcam access required for proctoring to ensure academic integrity.
+          The following security measures will be activated:
         </p>
 
-        <div className="bg-gray-700 rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-medium text-white mb-2">How it works:</h3>
-          <ul className="space-y-2 text-gray-300">
+        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-5 overflow-auto max-h-60">
+          <ul className="space-y-3 text-sm text-gray-300">
             <li className="flex items-start">
-              <FaEye className="text-blue-500 mt-1 mr-2 flex-shrink-0" />
-              <span>Our system tracks your eye movements to detect if you're looking away from the screen</span>
+              <FaEye className="text-blue-400 mt-1 mr-2 flex-shrink-0" />
+              <span>Eye tracking monitors screen attention</span>
             </li>
             <li className="flex items-start">
-              <FaWindowMaximize className="text-yellow-500 mt-1 mr-2 flex-shrink-0" />
-              <span>Switching browser tabs during the assessment will result in immediate disqualification</span>
+              <FaWindowMaximize className="text-yellow-400 mt-1 mr-2 flex-shrink-0" />
+              <span>Tab switching results in disqualification</span>
             </li>
             <li className="flex items-start">
-              <FaCheck className="text-green-500 mt-1 mr-2 flex-shrink-0" />
-              <span>Your data is processed locally and not stored or shared</span>
+              <MdScreenshot className="text-orange-400 mt-1 mr-2 flex-shrink-0" />
+              <span>Screenshots are prevented and monitored</span>
             </li>
             <li className="flex items-start">
-              <FaTimes className="text-red-500 mt-1 mr-2 flex-shrink-0" />
-              <span>Looking away from the screen or not having your face visible for more than 5 seconds will result in immediate disqualification</span>
+              <FaClone className="text-purple-400 mt-1 mr-2 flex-shrink-0" />
+              <span>Text copying and selection disabled</span>
+            </li>
+            <li className="flex items-start">
+              <FaTimes className="text-red-400 mt-1 mr-2 flex-shrink-0" />
+              <span>5+ seconds looking away causes disqualification</span>
+            </li>
+            <li className="flex items-start">
+              <FaCheck className="text-green-400 mt-1 mr-2 flex-shrink-0" />
+              <span>All data is processed locally, not stored</span>
             </li>
           </ul>
         </div>
@@ -64,20 +72,21 @@ const ProctorConsentModal: React.FC<ProctorConsentModalProps> = ({
         <div className="flex flex-col space-y-3">
           <button
             onClick={onAccept}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
           >
-            Accept and Enable Camera
+            <FaCheck className="mr-2 h-3.5 w-3.5" />
+            Enable Camera & Continue
           </button>
           <button
             onClick={onDecline}
-            className="bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium py-2 px-4 rounded transition-colors"
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm"
           >
-            Decline (Cannot Take Assessment)
+            Decline (Exit Assessment)
           </button>
         </div>
 
-        <p className="text-xs text-gray-400 mt-4 text-center">
-          By accepting, you agree to allow webcam access for the duration of this assessment only.
+        <p className="text-xs text-gray-500 mt-4 text-center">
+          Your webcam feed is analyzed locally and is not recorded or saved.
         </p>
       </motion.div>
     </div>

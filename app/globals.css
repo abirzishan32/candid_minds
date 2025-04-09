@@ -27,6 +27,24 @@
   --bg-pattern: url("/pattern.png");
 }
 
+/* Anti-cheating features */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.no-select ::selection {
+  background: transparent;
+}
+
+/* Prevent screenshots by making content harder to capture */
+.no-screenshot {
+  -webkit-filter: none !important;
+  filter: none !important;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

@@ -319,34 +319,70 @@ const EyeTrackingProctor: React.FC<EyeTrackingProctorProps> = ({
 
   return (
     <div className={`relative ${showVideo ? 'block' : 'hidden'}`}>
-      <video
-        ref={videoRef}
-        width="320"
-        height="240"
-        autoPlay
-        muted
-        playsInline
-        className="rounded-lg"
-      />
-      <canvas 
-        ref={canvasRef} 
-        width="320" 
-        height="240" 
-        className="absolute top-0 left-0 rounded-lg"
-      />
-      {!streamActive && isActive && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-lg">
-          Initializing webcam...
-        </div>
-      )}
-      {showVideo && (
-        <div className="absolute top-1 right-1 bg-black/50 text-white text-xs px-2 py-1 rounded">
-          {metrics.isLookingAway ? 
-            `Time looking away: ${metrics.currentLookAwayDuration.toFixed(1)}s / ${disqualificationThreshold}s` : 
-            'Eyes on screen'
-          }
-        </div>
-      )}
+      <div className="relative overflow-hidden rounded-xl border border-gray-700 shadow-xl">
+        <video
+          ref={videoRef}
+          width="320"
+          height="240"
+          autoPlay
+          muted
+          playsInline
+          className="rounded-xl"
+        />
+        <canvas 
+          ref={canvasRef} 
+          width="320" 
+          height="240" 
+          className="absolute top-0 left-0 rounded-xl"
+        />
+        
+        {/* Status indicators and overlays */}
+        {!streamActive && isActive && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm text-white rounded-xl">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mb-3"></div>
+              <span className="text-sm font-medium">Initializing webcam...</span>
+            </div>
+          </div>
+        )}
+        
+        {showVideo && (
+          <>
+            {/* Visual metrics display */}
+            <div className="absolute bottom-3 left-3 right-3 bg-black/70 backdrop-blur-sm rounded-lg p-2 text-xs text-white">
+              <div className="flex justify-between items-center">
+                <span>Status:</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${metrics.isLookingAway ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                  {metrics.isLookingAway ? 'Looking Away' : 'Focused'}
+                </span>
+              </div>
+              
+              {metrics.isLookingAway && (
+                <div className="mt-1.5">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-400 text-[10px]">Time:</span>
+                    <span className="text-gray-300">{metrics.currentLookAwayDuration.toFixed(1)}s / {disqualificationThreshold}s</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-1">
+                    <div 
+                      className="bg-gradient-to-r from-yellow-500 to-red-500 h-1 rounded-full transition-all duration-100"
+                      style={{ width: `${Math.min(100, (metrics.currentLookAwayDuration / disqualificationThreshold) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Status indicator in top-right */}
+            <div className="absolute top-3 right-3 flex items-center space-x-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
+              <div className={`w-2 h-2 rounded-full ${metrics.isLookingAway ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+              <span className="text-[10px] font-medium text-white">
+                {metrics.isLookingAway ? 'AWAY' : 'ACTIVE'}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

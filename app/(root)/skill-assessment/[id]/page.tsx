@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaClock, FaCheck, FaTimes, FaArrowLeft, FaArrowRight, FaVideo, FaEye } from "react-icons/fa";
+import { FaClock, FaCheck, FaTimes, FaArrowLeft, FaArrowRight, FaVideo, FaEye, FaInfoCircle } from "react-icons/fa";
 import { toast } from "sonner";
 import { getSkillAssessmentById } from "@/lib/actions/skill-assessment.action";
 import { SkillAssessment, AssessmentQuestion } from "@/lib/actions/skill-assessment.action";
@@ -97,6 +97,110 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [assessmentStatus, params.id, handleCheatingDetected]);
+
+  // Prevent screenshots and copying
+  useEffect(() => {
+    if (assessmentStatus !== "in-progress") return;
+    
+    // Prevent screenshots by capturing PrintScreen, Cmd+Shift+3/4 etc.
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for PrintScreen key
+      if (e.key === 'PrintScreen') {
+        e.preventDefault();
+        handleCheatingDetected("Screenshot attempt detected");
+        return;
+      }
+      
+      // Check for Cmd+Shift+3/4/5 (Mac screenshot shortcuts)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
+        e.preventDefault();
+        handleCheatingDetected("Screenshot attempt detected");
+        return;
+      }
+      
+      // Check for Windows Snipping Tool shortcuts (Windows+Shift+S)
+      if (e.shiftKey && e.key === 'S' && e.metaKey) {
+        e.preventDefault();
+        handleCheatingDetected("Screenshot attempt detected");
+        return;
+      }
+    };
+    
+    // Detect programmatic screenshot attempts
+    // This is a basic implementation - more sophisticated detection would be needed for production
+    const detectProgrammaticScreenshot = () => {
+      // Listen for media capture events that might indicate screenshots
+      const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia;
+      navigator.mediaDevices.getDisplayMedia = function(constraints) {
+        handleCheatingDetected("Screen recording attempt detected");
+        return Promise.reject(new Error('Screen capture denied by assessment security policy'));
+      };
+      
+      return () => {
+        navigator.mediaDevices.getDisplayMedia = originalGetDisplayMedia;
+      };
+    };
+    
+    // Prevent copy events
+    const preventCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      toast.error("Copying is not allowed during the assessment", { duration: 3000 });
+    };
+    
+    // Prevent context menu (right-click)
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      toast.error("Right-click is disabled during the assessment", { duration: 3000 });
+    };
+    
+    // Prevent drag events (for dragging images or content)
+    const preventDrag = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    
+    // Prevent text selection
+    const preventSelection = () => {
+      if (assessmentStatus === "in-progress") {
+        // Add a class to the body to prevent selection
+        document.body.classList.add('no-select');
+        
+        // Apply to the specific content containers
+        const assessmentContent = document.querySelector('.bg-gray-800');
+        if (assessmentContent) {
+          assessmentContent.classList.add('no-select');
+        }
+      }
+    };
+    
+    // Add event listeners
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('copy', preventCopy);
+    document.addEventListener('cut', preventCopy);
+    document.addEventListener('paste', preventCopy);
+    document.addEventListener('contextmenu', preventContextMenu);
+    document.addEventListener('dragstart', preventDrag as any);
+    document.addEventListener('drop', preventDrag as any);
+    
+    // Apply selection prevention
+    preventSelection();
+    
+    // Apply programmatic screenshot detection
+    const cleanupProgrammaticDetection = detectProgrammaticScreenshot();
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('copy', preventCopy);
+      document.removeEventListener('cut', preventCopy);
+      document.removeEventListener('paste', preventCopy);
+      document.removeEventListener('contextmenu', preventContextMenu);
+      document.removeEventListener('dragstart', preventDrag as any);
+      document.removeEventListener('drop', preventDrag as any);
+      document.body.classList.remove('no-select');
+      cleanupProgrammaticDetection();
+    };
+  }, [assessmentStatus, handleCheatingDetected]);
 
   // Fetch assessment data
   useEffect(() => {
@@ -377,7 +481,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
+    <div className="min-h-screen bg-gray-950 p-8">
       <div className="max-w-4xl mx-auto">
         {assessmentStatus === "disqualified" ? (
           <DisqualificationScreen assessmentId={params.id} />
@@ -385,24 +489,24 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-800 rounded w-1/4"></div>
             <div className="h-4 bg-gray-800 rounded w-1/2"></div>
-            <div className="h-64 bg-gray-800 rounded-lg"></div>
+            <div className="h-64 bg-gray-800 rounded-xl"></div>
           </div>
         ) : error ? (
-          <div>
-            <div className="text-red-500 text-center py-8">{error}</div>
+          <div className="text-center p-8">
+            <div className="text-red-500 py-8">{error}</div>
             <button
               onClick={() => router.push('/skill-assessment')}
-              className="mx-auto block px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              className="mx-auto block px-6 py-3 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-all duration-200"
             >
               Back to Assessments
             </button>
           </div>
         ) : !assessment ? (
-          <div>
-            <div className="text-red-500 text-center py-8">Assessment not found</div>
+          <div className="text-center p-8">
+            <div className="text-red-500 py-8">Assessment not found</div>
             <button
               onClick={() => router.push('/skill-assessment')}
-              className="mx-auto block px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              className="mx-auto block px-6 py-3 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-all duration-200"
             >
               Back to Assessments
             </button>
@@ -411,117 +515,165 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
           <div>
             <button
               onClick={() => router.push('/skill-assessment')}
-              className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 mb-8"
+              className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 mb-8 group"
             >
-              <FaArrowLeft className="w-4 h-4" />
+              <FaArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
               <span>Back to Assessments</span>
             </button>
             
-            <div className="bg-gray-800 rounded-lg p-8 mb-8">
-              <h1 className="text-3xl font-bold text-white mb-4">{assessment.title}</h1>
-              <p className="text-gray-300 mb-6">{assessment.description}</p>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
+              <div className="p-6 border-b border-gray-800">
+                <h1 className="text-2xl font-bold text-white mb-2">{assessment.title}</h1>
+                <p className="text-gray-300 text-sm">{assessment.description}</p>
+              </div>
               
               {assessment.longDescription && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold text-white mb-2">About this Assessment</h2>
-                  <p className="text-gray-300">{assessment.longDescription}</p>
+                <div className="p-6 border-b border-gray-800">
+                  <h2 className="text-lg font-semibold text-white mb-2">About this Assessment</h2>
+                  <p className="text-gray-300 text-sm">{assessment.longDescription}</p>
                 </div>
               )}
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Assessment Details</h3>
-                  <ul className="space-y-2 text-gray-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-0.5 bg-gray-800">
+                <div className="bg-gray-900 p-6">
+                  <h3 className="text-md font-medium text-white mb-3 flex items-center">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                    Assessment Details
+                  </h3>
+                  <ul className="space-y-3 text-sm">
                     <li className="flex items-center justify-between">
-                      <span>Category:</span>
-                      <span className="text-blue-400">{assessment.category}</span>
+                      <span className="text-gray-400">Category</span>
+                      <span className="text-blue-400 font-medium">{assessment.category}</span>
                     </li>
                     <li className="flex items-center justify-between">
-                      <span>Difficulty:</span>
-                      <span className="text-blue-400">{assessment.difficulty}</span>
+                      <span className="text-gray-400">Difficulty</span>
+                      <span className="text-blue-400 font-medium">{assessment.difficulty}</span>
                     </li>
                     <li className="flex items-center justify-between">
-                      <span>Questions:</span>
-                      <span className="text-blue-400">{questions.length}</span>
+                      <span className="text-gray-400">Questions</span>
+                      <span className="text-blue-400 font-medium">{questions.length}</span>
                     </li>
                     <li className="flex items-center justify-between">
-                      <span>Time Limit:</span>
-                      <span className="text-blue-400">{assessment.duration} minutes</span>
+                      <span className="text-gray-400">Time Limit</span>
+                      <span className="text-blue-400 font-medium">{assessment.duration} minutes</span>
                     </li>
                     <li className="flex items-center justify-between">
-                      <span>Passing Score:</span>
-                      <span className="text-blue-400">{assessment.passPercentage}%</span>
+                      <span className="text-gray-400">Passing Score</span>
+                      <span className="text-blue-400 font-medium">{assessment.passPercentage}%</span>
                     </li>
                   </ul>
                 </div>
                 
-                {assessment.prerequisites && assessment.prerequisites.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="text-lg font-medium text-white mb-2">Prerequisites</h3>
-                    <ul className="list-disc pl-5 text-gray-300">
+                {assessment.prerequisites && assessment.prerequisites.length > 0 ? (
+                  <div className="bg-gray-900 p-6">
+                    <h3 className="text-md font-medium text-white mb-3 flex items-center">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Prerequisites
+                    </h3>
+                    <ul className="list-none space-y-2 text-sm">
                       {assessment.prerequisites.map((prereq, index) => (
-                        <li key={index}>{prereq}</li>
+                        <li key={index} className="flex items-center text-gray-300">
+                          <span className="mr-2 text-blue-400">•</span>
+                          {prereq}
+                        </li>
                       ))}
                     </ul>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 p-6 flex flex-col items-center justify-center">
+                    <div className="text-center max-w-xs">
+                      <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <FaCheck className="text-blue-400 w-5 h-5" />
+                      </div>
+                      <h3 className="text-md font-medium text-white mb-1">Ready to Begin</h3>
+                      <p className="text-gray-400 text-sm">This assessment has no prerequisites. You can start immediately.</p>
+                    </div>
                   </div>
                 )}
               </div>
               
-              <button
-                onClick={prepareToStartAssessment}
-                className="w-full py-3 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors"
-              >
-                Start Assessment
-              </button>
+              <div className="p-6">
+                <button
+                  onClick={prepareToStartAssessment}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-all duration-200 flex items-center justify-center"
+                >
+                  <span>Start Assessment</span>
+                  <FaArrowRight className="ml-2 w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ) : assessmentStatus === "results" ? (
-          <div className="bg-gray-800 rounded-lg p-8">
-            <h1 className="text-3xl font-bold text-white mb-4">Assessment Results</h1>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-gray-800">
+              <h1 className="text-2xl font-bold text-white">Assessment Results</h1>
+              <h2 className="text-md font-medium text-gray-400 mt-1">{assessment.title}</h2>
+            </div>
             
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">{assessment.title}</h2>
-              
-              <div className="flex flex-col items-center justify-center py-8 px-4 bg-gray-700 rounded-lg mb-6">
-                <div className="text-6xl font-bold mb-2">
+            <div className="p-6 border-b border-gray-800">
+              <div className="flex flex-col items-center justify-center py-8 px-4">
+                <div className="relative mb-3">
+                  <div className="w-32 h-32 rounded-full border-4 border-gray-700 flex items-center justify-center">
+                    <div 
+                      className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold"
+                      style={{
+                        background: `conic-gradient(${result?.isPassing ? '#10B981' : '#EF4444'} ${result?.percentage}%, #374151 0)`,
+                      }}
+                    >
+                      <div className="w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center">
+                        <span className={result?.isPassing ? "text-green-500" : "text-red-500"}>
+                          {result?.percentage}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`absolute -top-2 -right-2 rounded-full w-8 h-8 flex items-center justify-center ${result?.isPassing ? 'bg-green-500' : 'bg-red-500'}`}>
+                    {result?.isPassing ? 
+                      <FaCheck className="w-4 h-4 text-white" /> : 
+                      <FaTimes className="w-4 h-4 text-white" />
+                    }
+                  </div>
+                </div>
+                <div className="text-xl mb-2">
                   {result?.isPassing ? (
-                    <span className="text-green-500">{result?.percentage}%</span>
+                    <span className="text-green-500 font-semibold">Passed</span>
                   ) : (
-                    <span className="text-red-500">{result?.percentage}%</span>
+                    <span className="text-red-500 font-semibold">Failed</span>
                   )}
                 </div>
-                <div className="text-xl mb-4">
-                  {result?.isPassing ? (
-                    <span className="text-green-500">Passed</span>
-                  ) : (
-                    <span className="text-red-500">Failed</span>
-                  )}
-                </div>
-                <div className="text-gray-300">
+                <div className="text-gray-400 text-sm">
                   Score: {result?.score} / {result?.maxScore} points
                 </div>
               </div>
+            </div>
+            
+            <div className="p-6 border-b border-gray-800">
+              <h3 className="text-md font-medium text-white mb-4 flex items-center">
+                <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                Question Summary
+              </h3>
               
-              <h3 className="text-lg font-medium text-white mb-4">Question Summary</h3>
-              
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {result?.answersByQuestion.map((item, index) => (
-                  <div key={index} className="bg-gray-700 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 pr-4">
-                        <p className="text-white font-medium">Question {index + 1}</p>
-                        <p className="text-gray-300 mt-1">{item.question}</p>
+                  <div key={index} className="bg-gray-800/80 rounded-lg p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center">
+                          <span className="text-gray-400 text-sm">Question {index + 1}</span>
+                          <div className={`ml-2 px-2 py-0.5 text-xs rounded-full ${item.correct ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                            {item.correct ? 'Correct' : 'Incorrect'}
+                          </div>
+                        </div>
+                        <p className="text-white text-sm mt-1.5">{item.question}</p>
                       </div>
                       <div className="flex items-center">
                         {item.correct ? (
-                          <div className="flex items-center bg-green-500/10 text-green-500 px-3 py-1 rounded-full">
-                            <FaCheck className="w-4 h-4 mr-1" />
-                            <span>Correct</span>
+                          <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                            <FaCheck className="w-3.5 h-3.5 text-green-400" />
                           </div>
                         ) : (
-                          <div className="flex items-center bg-red-500/10 text-red-500 px-3 py-1 rounded-full">
-                            <FaTimes className="w-4 h-4 mr-1" />
-                            <span>Incorrect</span>
+                          <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                            <FaTimes className="w-3.5 h-3.5 text-red-400" />
                           </div>
                         )}
                       </div>
@@ -531,10 +683,10 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
               </div>
             </div>
             
-            <div className="flex justify-center space-x-4">
+            <div className="p-6 flex justify-center space-x-4">
               <button
                 onClick={() => router.push('/skill-assessment')}
-                className="py-3 px-6 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition-colors"
+                className="py-3 px-6 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Back to Assessments
               </button>
@@ -543,7 +695,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
                   setAssessmentStatus("intro");
                   setResult(null);
                 }}
-                className="py-3 px-6 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors"
+                className="py-3 px-6 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-all duration-200"
               >
                 Try Again
               </button>
@@ -552,158 +704,176 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
         ) : (
           // In-progress UI
           <>
-            <div className="flex justify-between items-center mb-6">
-              <div className="text-gray-300">
+            <div className="flex justify-between items-center mb-5">
+              <div className="bg-gray-900/80 border border-gray-800 rounded-full px-4 py-1.5 text-sm text-gray-300">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </div>
-              <div className="flex items-center bg-red-500/10 text-red-500 px-3 py-1 rounded-full">
-                <FaClock className="w-4 h-4 mr-2" />
-                <span>{formatTime(remainingTime)}</span>
+              <div className="flex items-center bg-gray-900/80 border border-gray-800 rounded-full px-4 py-1.5">
+                <div className={`mr-2 w-2 h-2 rounded-full ${remainingTime < 60 ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`}></div>
+                <span className="text-sm font-mono text-gray-300">{formatTime(remainingTime)}</span>
               </div>
             </div>
             
-            <div className="bg-gray-800 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold text-white mb-4">
-                {currentQuestion?.question}
-              </h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden mb-5">
+              <div className="p-6 border-b border-gray-800">
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  {currentQuestion?.question}
+                </h2>
+                
+                <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-1 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
               
-              {currentQuestion?.type === "multiple-choice" && (
-                <div className="space-y-3">
-                  {currentQuestion.answerType === "multiple" && (
-                    <div className="mb-4 p-3 bg-blue-500/10 text-blue-400 rounded-md">
-                      <p className="text-sm">This question has multiple correct answers. Select all that apply.</p>
-                    </div>
-                  )}
-                  {currentQuestion.options?.map((option) => {
-                    const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
+              <div className="p-6">
+                {currentQuestion?.type === "multiple-choice" && (
+                  <div className="space-y-3">
+                    {currentQuestion.answerType === "multiple" && (
+                      <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-sm">
+                        <div className="flex items-center">
+                          <FaInfoCircle className="mr-2 flex-shrink-0" />
+                          <p>This question has multiple correct answers. Select all that apply.</p>
+                        </div>
+                      </div>
+                    )}
                     
-                    return (
-                      <div
-                        key={option.id}
-                        onClick={() => {
-                          const selectedOptions = userAnswers.find(a => 
-                            a.questionId === currentQuestion.id
-                          )?.selectedOptions || [];
+                    <div className="grid grid-cols-1 gap-3">
+                      {currentQuestion.options?.map((option) => {
+                        const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
+                        
+                        return (
+                          <div
+                            key={option.id}
+                            onClick={() => {
+                              const selectedOptions = userAnswers.find(a => 
+                                a.questionId === currentQuestion.id
+                              )?.selectedOptions || [];
+                              
+                              let newSelectedOptions: string[];
+                              
+                              if (currentQuestion.answerType === "single") {
+                                // For single choice, replace the selection
+                                newSelectedOptions = [option.id];
+                              } else {
+                                // For multi-choice, toggle the selection
+                                if (selectedOptions.includes(option.id)) {
+                                  newSelectedOptions = selectedOptions.filter(id => id !== option.id);
+                                } else {
+                                  newSelectedOptions = [...selectedOptions, option.id];
+                                }
+                              }
+                              
+                              handleAnswerSubmit({
+                                questionId: currentQuestion.id,
+                                selectedOptions: newSelectedOptions
+                              });
+                            }}
+                            className={`flex items-center p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                              isSelected
+                                ? "bg-blue-600 text-white border border-blue-500 shadow-lg shadow-blue-900/20"
+                                : "bg-gray-800 text-gray-300 hover:bg-gray-750 border border-gray-700"
+                            }`}
+                          >
+                            <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 transition-colors ${
+                              isSelected ? "bg-white text-blue-500" : "bg-gray-700 text-gray-600"
+                            }`}>
+                              {isSelected && <FaCheck className="w-3 h-3" />}
+                            </div>
+                            <span className="text-sm">{option.text}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {currentQuestion?.type === "true-false" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {currentQuestion.options?.map((option) => {
+                      const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
+                      
+                      return (
+                        <div
+                          key={option.id}
+                          onClick={() => {
+                            handleAnswerSubmit({
+                              questionId: currentQuestion.id,
+                              selectedOptions: [option.id]
+                            });
+                          }}
+                          className={`flex items-center p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                            isSelected
+                              ? "bg-blue-600 text-white border border-blue-500 shadow-lg shadow-blue-900/20"
+                              : "bg-gray-800 text-gray-300 hover:bg-gray-750 border border-gray-700"
+                          }`}
+                        >
+                          <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 transition-colors ${
+                            isSelected ? "bg-white text-blue-500" : "bg-gray-700 text-gray-600"
+                          }`}>
+                            {isSelected && <FaCheck className="w-3 h-3" />}
+                          </div>
+                          <span className="text-sm">{option.text}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {(currentQuestion?.type === "text" || currentQuestion?.type === "coding") && (
+                  <div className="space-y-4">
+                    <textarea
+                      value={userAnswers.find(a => a.questionId === currentQuestion.id)?.text || ""}
+                      onChange={(e) => {
+                        setUserAnswers(prev => {
+                          const updatedAnswers = [...prev];
+                          const existingIndex = updatedAnswers.findIndex(a => a.questionId === currentQuestion.id);
                           
-                          let newSelectedOptions: string[];
+                          const updatedAnswer = {
+                            questionId: currentQuestion.id,
+                            selectedOptions: [],
+                            text: e.target.value
+                          };
                           
-                          if (currentQuestion.answerType === "single") {
-                            // For single choice, replace the selection
-                            newSelectedOptions = [option.id];
+                          if (existingIndex >= 0) {
+                            updatedAnswers[existingIndex] = updatedAnswer;
                           } else {
-                            // For multi-choice, toggle the selection
-                            if (selectedOptions.includes(option.id)) {
-                              newSelectedOptions = selectedOptions.filter(id => id !== option.id);
-                            } else {
-                              newSelectedOptions = [...selectedOptions, option.id];
-                            }
+                            updatedAnswers.push(updatedAnswer);
                           }
                           
-                          handleAnswerSubmit({
-                            questionId: currentQuestion.id,
-                            selectedOptions: newSelectedOptions
-                          });
-                        }}
-                        className={`flex items-center p-4 rounded-lg cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        }`}
-                      >
-                        <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
-                          isSelected ? "bg-white text-blue-500" : "bg-gray-600 text-gray-300"
-                        }`}>
-                          {isSelected && <FaCheck className="w-3 h-3" />}
+                          return updatedAnswers;
+                        });
+                      }}
+                      rows={8}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder={currentQuestion.type === "coding" ? "Write your code here..." : "Write your answer here..."}
+                    />
+                    {currentQuestion.type === "coding" && currentQuestion.codeSnippet && (
+                      <div className="mt-3">
+                        <div className="text-sm font-medium text-gray-300 mb-1 flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          Reference Code
                         </div>
-                        <span>{option.text}</span>
+                        <pre className="bg-gray-800 p-4 rounded-lg text-sm text-gray-300 overflow-x-auto border border-gray-700">
+                          {currentQuestion.codeSnippet}
+                        </pre>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-              
-              {currentQuestion?.type === "true-false" && (
-                <div className="space-y-3">
-                  {currentQuestion.options?.map((option) => {
-                    const isSelected = userAnswers.find(a => a.questionId === currentQuestion.id)?.selectedOptions.includes(option.id);
-                    
-                    return (
-                      <div
-                        key={option.id}
-                        onClick={() => {
-                          handleAnswerSubmit({
-                            questionId: currentQuestion.id,
-                            selectedOptions: [option.id]
-                          });
-                        }}
-                        className={`flex items-center p-4 rounded-lg cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        }`}
-                      >
-                        <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
-                          isSelected ? "bg-white text-blue-500" : "bg-gray-600 text-gray-300"
-                        }`}>
-                          {isSelected && <FaCheck className="w-3 h-3" />}
-                        </div>
-                        <span>{option.text}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              
-              {(currentQuestion?.type === "text" || currentQuestion?.type === "coding") && (
-                <div className="space-y-3">
-                  <textarea
-                    value={userAnswers.find(a => a.questionId === currentQuestion.id)?.text || ""}
-                    onChange={(e) => {
-                      setUserAnswers(prev => {
-                        const updatedAnswers = [...prev];
-                        const existingIndex = updatedAnswers.findIndex(a => a.questionId === currentQuestion.id);
-                        
-                        const updatedAnswer = {
-                          questionId: currentQuestion.id,
-                          selectedOptions: [],
-                          text: e.target.value
-                        };
-                        
-                        if (existingIndex >= 0) {
-                          updatedAnswers[existingIndex] = updatedAnswer;
-                        } else {
-                          updatedAnswers.push(updatedAnswer);
-                        }
-                        
-                        return updatedAnswers;
-                      });
-                    }}
-                    rows={8}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white"
-                    placeholder={currentQuestion.type === "coding" ? "Write your code here..." : "Write your answer here..."}
-                  />
-                  {currentQuestion.type === "coding" && currentQuestion.codeSnippet && (
-                    <div className="mt-3">
-                      <div className="text-sm font-medium text-gray-300 mb-1">
-                        Reference Code:
-                      </div>
-                      <pre className="bg-gray-900 p-4 rounded-md text-sm text-gray-300 overflow-x-auto">
-                        {currentQuestion.codeSnippet}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="flex justify-between items-center">
               <button
                 onClick={goToPreviousQuestion}
                 disabled={currentQuestionIndex === 0}
-                className={`flex items-center px-4 py-2 rounded-md ${
+                className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
                   currentQuestionIndex === 0
-                    ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                    : "bg-gray-700 text-white hover:bg-gray-600"
+                    ? "bg-gray-800 text-gray-600 cursor-not-allowed opacity-50"
+                    : "bg-gray-800 border border-gray-700 text-white hover:bg-gray-700"
                 }`}
               >
                 <FaArrowLeft className="w-4 h-4 mr-2" />
@@ -713,7 +883,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
               {currentQuestionIndex < questions.length - 1 ? (
                 <button
                   onClick={goToNextQuestion}
-                  className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  className="flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-lg shadow-blue-900/20 transition-all duration-200"
                 >
                   <span>Next</span>
                   <FaArrowRight className="w-4 h-4 ml-2" />
@@ -721,7 +891,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
               ) : (
                 <button
                   onClick={submitAssessment}
-                  className="flex items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                  className="flex items-center px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white rounded-lg shadow-lg shadow-green-900/20 transition-all duration-200"
                 >
                   <span>Submit Assessment</span>
                   <FaCheck className="w-4 h-4 ml-2" />
@@ -729,7 +899,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
               )}
             </div>
             
-            {/* Eye tracking components - Add these to the in-progress UI */}
+            {/* Hidden eye tracking components */}
             <div className="hidden">
               {proctorActive && !showProctorVideo && (
                 <EyeTrackingProctor
@@ -744,7 +914,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
             <div className="fixed bottom-4 right-4">
               <div className="flex flex-col items-end space-y-2">
                 {proctorActive && showProctorVideo && (
-                  <div className="bg-gray-800 rounded-lg p-2 shadow-lg">
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-2 shadow-2xl overflow-hidden transition-all duration-300 hover:scale-105">
                     <EyeTrackingProctor
                       isActive={proctorActive}
                       onCheatingDetected={handleCheatingDetected}
@@ -757,7 +927,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
                 {proctorActive && (
                   <button
                     onClick={toggleProctorVideo}
-                    className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full"
+                    className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-all duration-200 border border-gray-700"
                     title={showProctorVideo ? "Hide webcam" : "Show webcam"}
                   >
                     {showProctorVideo ? <FaVideo /> : <FaEye />}
