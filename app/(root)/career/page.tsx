@@ -135,51 +135,50 @@ function TopicsList() {
 export default function CareerPage() {
   return (
     <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 max-w-7xl">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-14 gap-0 sm:gap-4">
         {/* Left Sidebar - Desktop Only */}
-        <div className="hidden lg:block lg:col-span-3 space-y-3">
-          <div className="lg:sticky lg:top-4">
-            <div className="p-4 flex flex-col space-y-6">
-              
+        <div className="hidden lg:block lg:col-span-2 space-y-2">
+          <div className="lg:sticky lg:top-4 lg:pl-0">
+            <div className="p-2 flex flex-col space-y-3">
               <Link 
                 href="/career" 
-                className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-full font-medium text-white"
+                className="flex items-center gap-2 p-2 bg-gray-800/50 rounded-full font-medium text-white"
               >
-                <MessageSquare className="h-6 w-6" />
-                <span>Interview Experiences</span>
+                <MessageSquare className="h-5 w-5" />
+                <span className="text-sm truncate">Experiences</span>
               </Link>
               
               <Link 
                 href="#" 
-                className="flex items-center gap-3 p-3 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
+                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
               >
-                <TrendingUp className="h-6 w-6" />
-                <span>Trending Companies</span>
+                <TrendingUp className="h-5 w-5" />
+                <span className="text-sm truncate">Trending</span>
               </Link>
               
               <Link 
                 href="#" 
-                className="flex items-center gap-3 p-3 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
+                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
               >
-                <Building className="h-6 w-6" />
-                <span>Browse Companies</span>
+                <Building className="h-5 w-5" />
+                <span className="text-sm truncate">Companies</span>
               </Link>
               
               <Link 
                 href="#" 
-                className="flex items-center gap-3 p-3 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
+                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
               >
-                <Users className="h-6 w-6" />
-                <span>My Experiences</span>
+                <Users className="h-5 w-5" />
+                <span className="text-sm truncate">My Posts</span>
               </Link>
               
-              <div className="pt-4">
+              <div className="pt-2">
                 <Link
                   href="#post-form"
-                  className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-full w-full transition-colors"
+                  className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-full w-full transition-colors text-sm"
                 >
-                  <MessageSquare className="h-5 w-5" />
-                  <span>Share Experience</span>
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="truncate">Share</span>
                 </Link>
               </div>
             </div>
@@ -187,7 +186,7 @@ export default function CareerPage() {
         </div>
         
         {/* Main Timeline */}
-        <div className="col-span-1 lg:col-span-6 border-x border-gray-800 min-h-screen">
+        <div className="col-span-1 lg:col-span-8 border-x border-gray-800 min-h-screen">
           {/* Header */}
           <div className="sticky top-0 z-10 bg-black p-4 border-b border-gray-800 backdrop-blur bg-black/80">
             <h1 className="text-xl font-bold text-white">Interview Experiences</h1>
@@ -233,7 +232,7 @@ export default function CareerPage() {
         </div>
         
         {/* Right Sidebar */}
-        <div className="hidden lg:block lg:col-span-3 space-y-4">
+        <div className="hidden lg:block lg:col-span-4 space-y-4">
           <div className="lg:sticky lg:top-4 space-y-4">
             {/* Search */}
             <div className="bg-gray-900 border border-gray-800 rounded-full px-4 py-2 flex items-center gap-3">
