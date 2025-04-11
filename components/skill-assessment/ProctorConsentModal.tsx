@@ -44,27 +44,24 @@ const ProctorConsentModal: React.FC<ProctorConsentModalProps> = ({
           <ul className="space-y-3 text-sm text-gray-300">
             <li className="flex items-start">
               <FaEye className="text-blue-400 mt-1 mr-2 flex-shrink-0" />
-              <span>Eye tracking monitors screen attention</span>
+              <span>Eye tracking monitors screen attention. If you look away from the screen, you will be immediately disqualified</span>
             </li>
             <li className="flex items-start">
               <FaWindowMaximize className="text-yellow-400 mt-1 mr-2 flex-shrink-0" />
-              <span>Tab switching results in disqualification</span>
+              <span>Do not switch tabs on your browser. It will result in immediate disqualification</span>
             </li>
             <li className="flex items-start">
               <MdScreenshot className="text-orange-400 mt-1 mr-2 flex-shrink-0" />
-              <span>Screenshots are prevented and monitored</span>
+              <span>Taking screenshots is prevented and monitored</span>
             </li>
             <li className="flex items-start">
               <FaClone className="text-purple-400 mt-1 mr-2 flex-shrink-0" />
-              <span>Text copying and selection disabled</span>
+              <span>You cannot copy or select text. It will be monitored</span>
             </li>
-            <li className="flex items-start">
-              <FaTimes className="text-red-400 mt-1 mr-2 flex-shrink-0" />
-              <span>5+ seconds looking away causes disqualification</span>
-            </li>
+            
             <li className="flex items-start">
               <FaCheck className="text-green-400 mt-1 mr-2 flex-shrink-0" />
-              <span>All data is processed locally, not stored</span>
+              <span>Your face data is processed locally, not stored</span>
             </li>
           </ul>
         </div>
@@ -85,9 +82,6 @@ const ProctorConsentModal: React.FC<ProctorConsentModalProps> = ({
           </button>
         </div>
 
-        <p className="text-xs text-gray-500 mt-4 text-center">
-          Your webcam feed is analyzed locally and is not recorded or saved.
-        </p>
       </motion.div>
     </div>
   );
