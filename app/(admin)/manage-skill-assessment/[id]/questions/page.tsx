@@ -12,7 +12,7 @@ import {
   deleteAssessmentQuestion,
   updateSkillAssessment
 } from "@/lib/actions/skill-assessment.action";
-import { SkillAssessment, AssessmentQuestion } from "@/lib/actions/skill-assessment.action";
+import { SkillAssessment, AssessmentQuestion, AssessmentOption } from "@/lib/actions/skill-assessment.action";
 import QuestionForm from "@/components/skill-assessment/QuestionForm";
 import {
   DndContext,
@@ -33,6 +33,7 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { any } from "zod";
 
 function getQuestionTypeColor(type: string) {
   switch (type) {
@@ -126,14 +127,14 @@ function SortableQuestionItem({ question, index, onEdit, onDelete }: SortableQue
               <ul className="space-y-1 pl-5">
                 {(() => {
                   // Safely extract options as an array
-                  let options = [];
+                  let options: AssessmentOption[] = [];
                   if (Array.isArray(question.options)) {
                     options = question.options;
                   } else if (typeof question.options === 'object' && question.options !== null) {
                     options = Object.values(question.options);
                   }
                   
-                  return options.map((option: any) => {
+                  return options.map((option) => {
                     if (!option || !option.id) {
                       console.warn('Invalid option:', option);
                       return null;
@@ -179,6 +180,11 @@ function SortableQuestionItem({ question, index, onEdit, onDelete }: SortableQue
   );
 }
 
+// Add a new interface that extends SkillAssessment to properly type the response
+interface SkillAssessmentWithQuestions extends Omit<SkillAssessment, 'questions'> {
+  questions: AssessmentQuestion[];
+}
+
 export default function AssessmentQuestionsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [assessment, setAssessment] = useState<SkillAssessment | null>(null);
@@ -198,26 +204,30 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
     })
   );
 
-  // Use React.use() to unwrap params
-  const { id } = React.use(params);
-
   useEffect(() => {
     fetchAssessment();
-  }, [id]);
+  }, [params.id]);
 
   const fetchAssessment = async () => {
     try {
       setLoading(true);
-      console.log(`Fetching assessment with ID: ${id}`);
-      const response = await getSkillAssessmentById(id);
+      console.log(`Fetching assessment with ID: ${params.id}`);
+      const response = await getSkillAssessmentById(params.id);
       console.log('Assessment response:', response);
       
-      if (response && response.success && response.data) {
-        setAssessment(response.data);
+      if (response && response.success && 'data' in response) {
+        // First treat the data as the special type that includes AssessmentQuestion[]
+        const assessmentWithQuestions = response.data as unknown as SkillAssessmentWithQuestions;
         
-        // The questions are now directly in the response.data.questions array
-        const assessmentQuestions = response.data.questions;
+        // Then extract just the question objects for our questions state
+        const assessmentQuestions = assessmentWithQuestions.questions || [];
         console.log('Questions from response:', assessmentQuestions);
+        
+        // For the assessment state, convert back to regular SkillAssessment format with string[] questions
+        setAssessment({
+          ...assessmentWithQuestions,
+          questions: assessmentQuestions.map(q => q.id)
+        });
         
         // Ensure we're dealing with a valid array of questions
         if (Array.isArray(assessmentQuestions) && assessmentQuestions.length > 0) {
@@ -253,7 +263,7 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
     try {
       const response = await createAssessmentQuestion({
         ...data,
-        assessmentId: id,
+        assessmentId: params.id,
         order: questions.length
       });
       
@@ -274,7 +284,7 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
     if (!confirm("Are you sure you want to delete this question?")) return;
 
     try {
-      const response = await deleteAssessmentQuestion(questionId, id);
+      const response = await deleteAssessmentQuestion(questionId, params.id);
       if (response.success) {
         toast.success("Question deleted successfully");
         fetchAssessment(); // Refresh the questions list
@@ -288,7 +298,7 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
   };
 
   const handleEditQuestion = (question: AssessmentQuestion) => {
-    router.push(`/manage-skill-assessment/${id}/questions/${question.id}`);
+    router.push(`/manage-skill-assessment/${params.id}/questions/${question.id}`);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -326,7 +336,7 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
         );
         
         // Update the questions array in the assessment
-        await updateSkillAssessment(id, {
+        await updateSkillAssessment(params.id, {
           questions: updatedQuestions.map(q => q.id)
         });
         
@@ -388,7 +398,7 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
     <div className="min-h-screen bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <button
-          onClick={() => router.push(`/manage-skill-assessment/${id}`)}
+          onClick={() => router.push(`/manage-skill-assessment/${params.id}`)}
           className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 mb-8"
         >
           <FaArrowLeft className="w-4 h-4" />
@@ -439,8 +449,12 @@ export default function AssessmentQuestionsPage({ params }: { params: { id: stri
             </div>
             {assessment && (
               <QuestionForm
-                assessmentId={id}
-                onSubmit={handleAddQuestion}
+                assessmentId={params.id}
+                onSubmit={async (data) => {
+                  // Cast the Partial<AssessmentQuestion> to the required Omit type
+                  // This is safe because QuestionForm ensures all required fields are present
+                  await handleAddQuestion(data as Omit<AssessmentQuestion, 'id' | 'createdAt' | 'updatedAt'>);
+                }}
                 onSuccess={() => {
                   setIsAddingQuestion(false);
                   fetchAssessment();
