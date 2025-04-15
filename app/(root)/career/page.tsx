@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Building, MessageSquare, TrendingUp, Search, Zap, Shield, Users, Hash } from "lucide-react";
+import { Building, MessageSquare, TrendingUp, Search, Zap, Shield, Users, Hash, Bookmark } from "lucide-react";
 import { getCareerExperiences, CareerExperience } from "@/lib/actions/career-experience.action";
 import ExperienceCard from "@/components/career/ExperienceCard";
 import ClientExperienceForm from "@/components/career/ClientExperienceForm";
@@ -149,6 +149,14 @@ export default function CareerPage() {
               </Link>
               
               <Link 
+                href="/career/saved" 
+                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
+              >
+                <Bookmark className="h-5 w-5" />
+                <span className="text-sm truncate">Saved</span>
+              </Link>
+              
+              <Link 
                 href="#" 
                 className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
               >
@@ -199,6 +207,12 @@ export default function CareerPage() {
                 className="flex-1 text-center py-3 border-b-2 border-blue-500 text-white font-medium"
               >
                 For you
+              </Link>
+              <Link 
+                href="/career/saved" 
+                className="flex-1 text-center py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300"
+              >
+                Saved
               </Link>
               <Link 
                 href="#" 

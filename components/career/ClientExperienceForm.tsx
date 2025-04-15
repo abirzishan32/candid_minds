@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Briefcase, Loader2, ChevronDown, X, Smile, Image as ImageIcon, Building, Award } from "lucide-react";
+import { Briefcase, Loader2, ChevronDown, X, Smile, Image as ImageIcon, Building, Award, UserRoundIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -131,14 +131,14 @@ export default function ClientExperienceForm() {
     );
   }
   
-  // Twitter-like posting experience
+
   return (
     <div className="rounded-xl overflow-hidden relative">
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="flex space-x-4">
           <div className="flex-shrink-0">
             <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-              A
+              <UserRoundIcon className="w-5 h-5" />
             </div>
           </div>
           
@@ -261,12 +261,7 @@ export default function ClientExperienceForm() {
             <div className={`flex items-center ${expanded ? 'justify-between' : 'justify-end'}`}>
               {expanded && (
                 <div className="flex gap-2 text-blue-400">
-                  <button type="button" className="p-2 rounded-full hover:bg-gray-800/50">
-                    <ImageIcon className="h-5 w-5" />
-                  </button>
-                  <button type="button" className="p-2 rounded-full hover:bg-gray-800/50">
-                    <Smile className="h-5 w-5" />
-                  </button>
+                  
                 </div>
               )}
               

@@ -3,9 +3,18 @@
 import { format } from "date-fns";
 import Link from "next/link";
 import { Building, CalendarDays, Award, Users, MessageSquare, Share2, Bookmark, ThumbsUp, MoreHorizontal } from "lucide-react";
-import { CareerExperience } from "@/lib/actions/career-experience.action";
+import { CareerExperience, hasUserLiked, toggleLike, hasUserSaved, toggleSavePost, hasUserLikedV2, hasUserSavedV2, toggleLikeV2, toggleSavePostV2 } from "@/lib/actions/career-experience.action";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+// Server action to get the current user
+async function fetchCurrentUser() {
+
+  
+  const { getCurrentUser } = await import("@/lib/actions/auth.action");
+  return getCurrentUser();
+}
 
 interface ExperienceCardProps {
   experience: CareerExperience;
@@ -14,6 +23,9 @@ interface ExperienceCardProps {
 export default function ExperienceCard({ experience }: ExperienceCardProps) {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [user, setUser] = useState<{ id: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [likeCount, setLikeCount] = useState(experience.likesCount || 0);
   
   const formattedDate = experience.createdAt 
     ? format(new Date(experience.createdAt), "MMM d, yyyy")
@@ -31,8 +43,92 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
     negative: "bg-red-500/10 border-red-500/20"
   };
   
-  // Generate random like count between 5-50
-  const likeCount = Math.floor(Math.random() * 45) + 5;
+  useEffect(() => {
+    const loadUserAndInteractions = async () => {
+      try {
+        // Get current user
+        const currentUser = await fetchCurrentUser();
+        setUser(currentUser);
+        
+        if (currentUser) {
+          // Check if the user has liked this post
+          const likeResult = await hasUserLiked(experience.id, currentUser.id);
+          if (likeResult.success) {
+            setLiked(likeResult.hasLiked);
+          }
+          
+          // Check if the user has saved this post
+          const saveResult = await hasUserSaved(experience.id, currentUser.id);
+          if (saveResult.success) {
+            setBookmarked(saveResult.hasSaved);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user interactions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadUserAndInteractions();
+  }, [experience.id]);
+  
+  const handleToggleLike = async () => {
+    if (!user) {
+      toast.error("Please sign in to like this post");
+      return;
+    }
+    
+    try {
+      // Optimistic UI update
+      setLiked(!liked);
+      setLikeCount(prevCount => liked ? prevCount - 1 : prevCount + 1);
+      
+      // Call the server action to toggle like
+      const result = await toggleLike(experience.id, user.id);
+      
+      if (!result.success) {
+        // Revert optimistic update if the server action failed
+        setLiked(liked);
+        setLikeCount(likeCount);
+        toast.error("Failed to update like status");
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      setLiked(liked);
+      setLikeCount(likeCount);
+      console.error("Error toggling like:", error);
+      toast.error("An error occurred");
+    }
+  };
+  
+  const handleToggleBookmark = async () => {
+    if (!user) {
+      toast.error("Please sign in to save this post");
+      return;
+    }
+    
+    try {
+      // Optimistic UI update
+      setBookmarked(!bookmarked);
+      
+      // Call the server action to toggle bookmark
+      const result = await toggleSavePost(experience.id, user.id);
+      
+      if (!result.success) {
+        // Revert optimistic update if the server action failed
+        setBookmarked(bookmarked);
+        toast.error("Failed to update bookmark status");
+      } else {
+        toast.success(bookmarked ? "Post removed from saved items" : "Post saved to your collection");
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      setBookmarked(bookmarked);
+      console.error("Error toggling bookmark:", error);
+      toast.error("An error occurred");
+    }
+  };
   
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden transition-all duration-200 hover:bg-gray-900/80">
@@ -113,10 +209,11 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
         <div className="flex justify-between items-center pt-3 mt-2 border-t border-gray-800 text-gray-500">
           <button 
             className="flex items-center gap-1.5 hover:text-blue-400 transition-colors"
-            onClick={() => setLiked(!liked)}
+            onClick={handleToggleLike}
+            disabled={isLoading}
           >
             <ThumbsUp className={cn("h-4 w-4", liked && "text-blue-400 fill-blue-400")} />
-            <span className={cn("text-xs", liked && "text-blue-400")}>{liked ? likeCount + 1 : likeCount}</span>
+            <span className={cn("text-xs", liked && "text-blue-400")}>{likeCount}</span>
           </button>
           
           <Link 
@@ -124,7 +221,7 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
             className="flex items-center gap-1.5 hover:text-blue-400 transition-colors"
           >
             <MessageSquare className="h-4 w-4" />
-            <span className="text-xs">Comment</span>
+            <span className="text-xs">{experience.commentsCount ? experience.commentsCount : "Comment"}</span>
           </Link>
           
           <button className="flex items-center gap-1.5 hover:text-blue-400 transition-colors">
@@ -134,7 +231,8 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
           
           <button 
             className="flex items-center gap-1.5 hover:text-blue-400 transition-colors"
-            onClick={() => setBookmarked(!bookmarked)}
+            onClick={handleToggleBookmark}
+            disabled={isLoading}
           >
             <Bookmark className={cn("h-4 w-4", bookmarked && "text-blue-400 fill-blue-400")} />
             <span className={cn("text-xs", bookmarked && "text-blue-400")}>Save</span>
