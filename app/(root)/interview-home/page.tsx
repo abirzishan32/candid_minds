@@ -25,13 +25,13 @@ const Page = async () => {
 
     return (
         <>
-            <section className="card-cta rounded-2xl bg-gradient-to-br from-background to-muted/50 p-8 border border-border/50 shadow-lg backdrop-blur-sm">
+            <section className="card-cta rounded-2xl bg-gradient-to-br from-gray-950 to-black p-8 border border-gray-800 shadow-lg backdrop-blur-sm">
                 <div className="flex flex-col gap-6 max-w-lg">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-pulse">
-                        Get Interview-Ready with AI-Powered Practice & Feedback
+                    <h2 className="text-3xl font-bold text-white">
+                        Get <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Interview-Ready</span> with AI-Powered Practice
                     </h2>
 
-                    <p className="text-lg text-muted-foreground">
+                    <p className="text-lg text-gray-400">
                         Practice real interview questions & get instant feedback!
                     </p>
 
@@ -60,10 +60,10 @@ const Page = async () => {
                 </div>
             </section>
 
-            {/* Company Interviews Section - New section */}
+            {/* Company Interviews Section */}
             {hasCompanyInterviews && (
                 <section className="flex flex-col gap-6 mt-14">
-                    <h2 className="text-2xl font-bold flex items-center gap-2 border-b pb-2">
+                    <h2 className="text-2xl font-bold flex items-center gap-2 border-b border-gray-800 pb-2">
                         <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
                         Company Recruiting Interviews
                     </h2>
@@ -76,7 +76,7 @@ const Page = async () => {
             )}
 
             <section className="flex flex-col gap-6 mt-14">
-                <h2 className="text-2xl font-bold flex items-center gap-2 border-b pb-2">
+                <h2 className="text-2xl font-bold flex items-center gap-2 border-b border-gray-800 pb-2">
                     <span className="w-2 h-6 bg-primary rounded-full"></span>
                     Your Interviews
                 </h2>
@@ -87,13 +87,13 @@ const Page = async () => {
                                 <InterviewCard {...interview} key={interview.id} isAuthenticated={isAuthenticated} />
                             ))
                         ) : (
-                            <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-muted-foreground/30">
-                                <p className="text-muted-foreground">You haven't taken any interviews yet!</p>
+                            <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-gray-700 bg-black/50">
+                                <p className="text-gray-400">You haven't taken any interviews yet!</p>
                             </div>
                         )
                     ) : (
-                        <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-muted-foreground/30">
-                            <p className="text-muted-foreground">
+                        <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-gray-700 bg-black/50">
+                            <p className="text-gray-400">
                                 <Link href="/sign-in" className="text-primary-100 hover:underline">Log in</Link> or
                                 <Link href="/sign-up" className="text-primary-100 hover:underline ml-1">sign up</Link> to see your interviews
                             </p>
@@ -103,7 +103,7 @@ const Page = async () => {
             </section>
 
             <section className="flex flex-col gap-6 mt-14">
-                <h2 className="text-2xl font-bold flex items-center gap-2 border-b pb-2">
+                <h2 className="text-2xl font-bold flex items-center gap-2 border-b border-gray-800 pb-2">
                     <span className="w-2 h-6 bg-secondary rounded-full"></span>
                     Practice Interviews
                 </h2>
@@ -114,8 +114,8 @@ const Page = async () => {
                             <InterviewCard {...interview} key={interview.id} isAuthenticated={isAuthenticated} />
                         ))
                     ) : (
-                        <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-muted-foreground/30">
-                            <p className="text-muted-foreground">
+                        <div className="col-span-full p-8 text-center rounded-xl border border-dashed border-gray-700 bg-black/50">
+                            <p className="text-gray-400">
                                 {isAuthenticated
                                     ? "There are no new interviews available!"
                                     : "Sign up to access practice interviews"}

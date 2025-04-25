@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Button } from "./ui/button";
 import DisplayTechIcons from "./DisplayTechIcons";
 
-import { cn, getRandomInterviewCover } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
 
 const InterviewCard = async ({id, userId, role, type, techstack, createdAt, companyName, isCompanyInterview, level}: InterviewCardProps) => {
@@ -15,17 +15,17 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt, comp
 
     const badgeColor =
         {
-            Behavioral: "bg-gray-800 text-emerald-400 border border-emerald-900",
-            Mixed: "bg-gray-800 text-violet-400 border border-violet-900",
-            Technical: "bg-gray-800 text-blue-400 border border-blue-900",
-        }[normalizedType] || "bg-gray-800 text-violet-400 border border-violet-900";
+            Behavioral: "bg-black text-emerald-400 border border-emerald-900",
+            Mixed: "bg-black text-violet-400 border border-violet-900",
+            Technical: "bg-black text-blue-400 border border-blue-900",
+        }[normalizedType] || "bg-black text-violet-400 border border-violet-900";
 
     const formattedDate = dayjs(
         feedback?.createdAt || createdAt || Date.now()
     ).format("MMM D, YYYY");
 
     return (
-        <div className="border border-gray-700 rounded-xl overflow-hidden bg-gradient-to-br from-gray-900 to-black shadow-lg hover:shadow-xl hover:shadow-primary-900/10 transition-all duration-300 w-[360px] max-sm:w-full min-h-96">
+        <div className="border border-gray-800 rounded-xl overflow-hidden bg-gradient-to-br from-gray-950 to-black shadow-lg hover:shadow-xl hover:shadow-primary-900/20 transition-all duration-300 w-[360px] max-sm:w-full min-h-[340px]">
             <div className="p-5 relative">
                 <div>
                     {/* Type Badge */}
@@ -38,23 +38,14 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt, comp
                         <p className="font-medium text-sm tracking-wide">{normalizedType}</p>
                     </div>
 
-                    {/* Cover Image */}
-                    <div className="flex items-center justify-center mb-4">
-                        <Image
-                            src={getRandomInterviewCover()}
-                            alt="cover-image"
-                            width={90}
-                            height={90}
-                            className="rounded-full object-fit size-[90px] border-2 border-gray-700 shadow-lg shadow-primary-900/20"
-                        />
+                    {/* Interview Role - Modern styling with accent border */}
+                    <div className="mt-4 border-l-4 border-primary pl-3">
+                        <h3 className="capitalize text-white text-xl font-bold tracking-tight">{role} Interview</h3>
                     </div>
-
-                    {/* Interview Role */}
-                    <h3 className="mt-5 capitalize text-white text-xl font-bold tracking-tight">{role} Interview</h3>
 
                     {/* Company Name - Only show for company interviews */}
                     {isCompanyInterview && companyName && (
-                        <div className="mt-1 flex items-center">
+                        <div className="mt-2 flex items-center">
                         <span className="text-primary-100 font-medium text-sm">
                           {companyName} • {level || 'Any Level'}
                         </span>
@@ -62,7 +53,7 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt, comp
                     )}
 
                     {/* Date & Score */}
-                    <div className="flex flex-row gap-5 mt-3 text-gray-300">
+                    <div className="flex flex-row gap-5 mt-4 text-gray-300">
                         <div className="flex flex-row gap-2 items-center">
                             <Image
                                 src="/calendar.svg"
