@@ -20,7 +20,17 @@ interface SavedMessage {
     content: string;
 }
 
-const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) => {
+interface AgentProps {
+    userName: string;
+    userId?: string;
+    interviewId?: string;
+    feedbackId?: string;
+    type: "generate" | "interview";
+    questions?: string[];
+    saveResult?: boolean;
+}
+
+const Agent = ({ userName, userId, type, interviewId, questions, saveResult = true }: AgentProps) => {
     const router = useRouter();
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
@@ -93,19 +103,22 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
     };
 
     const handleGenerateFeedback = async (messages: SavedMessage[]) => {
-        const { success, feedbackId: id } = await createFeedback({
-            interviewId: interviewId!,
-            userId: userId!,
-            transcript: messages
+        if (saveResult && interviewId && userId) {
+            const { success, feedbackId: id } = await createFeedback({
+                interviewId: interviewId,
+                userId: userId,
+                transcript: messages
+            });
 
-        })
-
-        if (success && id){
-            router.push(`/interview-main/${interviewId}/feedback`)
-        }
-        else{
-            console.log("Error saving feedback")
-            router.push('/interview-home')
+            if (success && id) {
+                router.push(`/interview-main/${interviewId}/feedback`)
+            } else {
+                console.log("Error saving feedback")
+                router.push('/interview-home')
+            }
+        } else {
+            console.log("Mock interview completed - not saving feedback");
+            router.push('/interview-home?mock=completed');
         }
     }
 
@@ -118,7 +131,7 @@ const Agent = ({ userName, userId, type, interviewId, questions }: AgentProps) =
                 handleGenerateFeedback(messages)
             }
         }
-    }, [messages, callStatus, type, userId, interviewId, router]);
+    }, [messages, callStatus, type, userId, interviewId, router, saveResult]);
 
     const handleCall = async () => {
         setCallStatus(CallStatus.CONNECTING);

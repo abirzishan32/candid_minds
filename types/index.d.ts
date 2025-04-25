@@ -1,6 +1,8 @@
 interface Feedback {
     id: string;
     interviewId: string;
+    userId: string;
+    userEmail?: string;
     totalScore: number;
     categoryScores: Array<{
       name: string;
@@ -23,6 +25,12 @@ interface Feedback {
     userId: string;
     type: string;
     finalized: boolean;
+    isModeratorInterview?: boolean;
+    isPublic?: boolean;
+    isCompanyInterview?: boolean;
+    moderatorId?: string;
+    company?: string;
+    allowedEmails?: string[];
   }
   
   interface CreateFeedbackParams {
@@ -36,23 +44,31 @@ interface Feedback {
     name: string;
     email: string;
     id: string;
-    role: 'admin' | 'user';
+    role: 'admin' | 'user' | 'interview-moderator';
     lastActive?: string;
     createdAt?: string;
+    company?: string;
+    allowedEmails?: string[];
   }
 
   interface SetUserRoleParams {
     userId: string;
-    newRole: 'admin' | 'user';
+    newRole: 'admin' | 'user' | 'interview-moderator';
+    company?: string;
   }
   
   interface InterviewCardProps {
-    id?: string;
-    userId?: string;
+    id: string;
     role: string;
     type: string;
     techstack: string[];
     createdAt?: string;
+    userId: string;
+    isCompanyInterview?: boolean;
+    isModeratorInterview?: boolean;
+    companyName?: string;
+    company?: string;
+    level?: string;
     isAuthenticated?: boolean;
   }
   
@@ -108,20 +124,6 @@ interface Feedback {
   }
 
 
-interface InterviewCardProps {
-  id: string;
-  role: string;
-  type: string;
-  techstack: string[];
-  createdAt?: string;
-  userId: string;
-  isCompanyInterview?: boolean;
-  companyName?: string;
-  level?: string;
-  isAuthenticated?: boolean;
-}
-
-
 interface ResumeAnalysisResult {
   overallScore: number;
   sectionScores: Record<string, number>;
@@ -149,4 +151,22 @@ interface ResumeAnalysisRecord {
   fileName: string;
   analysis: ResumeAnalysisResult;
   createdAt: string;
+}
+
+interface ModeratorApplication {
+  id: string;
+  userId: string;
+  userName: string;
+  email: string;
+  company: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface CreateModeratorApplicationParams {
+  userId: string;
+  company: string;
+  reason: string;
 }

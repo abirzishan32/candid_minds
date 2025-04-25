@@ -10,9 +10,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 
-const Feedback = async ({ params }: RouteParams) => {
-    const { id } = await params;
+const Feedback = async ({ params, searchParams }: { params: { id: string }, searchParams: { [key: string]: string | string[] | undefined } }) => {
+    const { id } = params;
     const user = await getCurrentUser();
+    
+    // Check if the user was redirected here because they already completed the interview
+    const alreadyCompleted = searchParams.completed === 'true';
 
     const interview = await getInterviewById(id);
     if (!interview) redirect("/");
@@ -22,8 +25,22 @@ const Feedback = async ({ params }: RouteParams) => {
         userId: user?.id!,
     });
 
+    // If no feedback was found, redirect to the interview home
+    if (!feedback) redirect("/interview-home");
+
     return (
         <section className="section-feedback">
+            {alreadyCompleted && (
+                <div className="mb-6 bg-blue-900/30 border border-blue-800 text-blue-300 p-4 rounded-lg">
+                    <p className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                        </svg>
+                        You've already completed this interview. Here's your feedback.
+                    </p>
+                </div>
+            )}
+            
             <div className="flex flex-row justify-center">
                 <h1 className="text-4xl font-semibold">
                     Feedback on the Interview -{" "}
@@ -101,16 +118,19 @@ const Feedback = async ({ params }: RouteParams) => {
                     </Link>
                 </Button>
 
-                <Button className="btn-primary flex-1">
-                    <Link
-                        href={`/interview/${id}`}
-                        className="flex w-full justify-center"
-                    >
-                        <p className="text-sm font-semibold text-black text-center">
-                            Retake Interview
-                        </p>
-                    </Link>
-                </Button>
+                {/* Only show retake button for practice interviews */}
+                {!interview.isCompanyInterview && !interview.isModeratorInterview && (
+                    <Button className="btn-primary flex-1">
+                        <Link
+                            href={`/interview-main/${id}`}
+                            className="flex w-full justify-center"
+                        >
+                            <p className="text-sm font-semibold text-black text-center">
+                                Retake Interview
+                            </p>
+                        </Link>
+                    </Button>
+                )}
             </div>
         </section>
     );

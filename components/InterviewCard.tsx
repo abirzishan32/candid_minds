@@ -8,7 +8,7 @@ import DisplayTechIcons from "./DisplayTechIcons";
 import { cn } from "@/lib/utils";
 import { getFeedbackByInterviewId } from "@/lib/actions/general.action";
 
-const InterviewCard = async ({id, userId, role, type, techstack, createdAt, companyName, isCompanyInterview, level}: InterviewCardProps) => {
+const InterviewCard = async ({id, userId, role, type, techstack, createdAt, companyName, isCompanyInterview, isModeratorInterview, company, level}: InterviewCardProps) => {
     const feedback = null as Feedback | null
 
     const normalizedType = /mix/gi.test(type) ? "Mixed" : type;
@@ -23,6 +23,9 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt, comp
     const formattedDate = dayjs(
         feedback?.createdAt || createdAt || Date.now()
     ).format("MMM D, YYYY");
+
+    // Display company name for both company interviews and moderator interviews
+    const displayCompany = companyName || (isModeratorInterview && company) || "";
 
     return (
         <div className="border border-gray-800 rounded-xl overflow-hidden bg-gradient-to-br from-gray-950 to-black shadow-lg hover:shadow-xl hover:shadow-primary-900/20 transition-all duration-300 w-[360px] max-sm:w-full min-h-[340px]">
@@ -43,11 +46,11 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt, comp
                         <h3 className="capitalize text-white text-xl font-bold tracking-tight">{role} Interview</h3>
                     </div>
 
-                    {/* Company Name - Only show for company interviews */}
-                    {isCompanyInterview && companyName && (
+                    {/* Company Name - Show for both company and moderator interviews */}
+                    {(isCompanyInterview || isModeratorInterview) && displayCompany && (
                         <div className="mt-2 flex items-center">
                         <span className="text-primary-100 font-medium text-sm">
-                          {companyName} • {level || 'Any Level'}
+                          {displayCompany} • {level || 'Any Level'}
                         </span>
                         </div>
                     )}
@@ -74,8 +77,8 @@ const InterviewCard = async ({id, userId, role, type, techstack, createdAt, comp
                     {/* Feedback or Placeholder Text */}
                     <p className="line-clamp-2 mt-5 text-gray-400">
                         {feedback?.finalAssessment ||
-                            (isCompanyInterview
-                                ? `Practice interview for ${companyName}. Take it now to improve your chances!`
+                            ((isCompanyInterview || isModeratorInterview) && displayCompany
+                                ? `Practice interview for ${displayCompany}. Take it now to improve your chances!`
                                 : "You haven't taken this interview yet. Take it now to improve your skills.")}
                     </p>
                 </div>

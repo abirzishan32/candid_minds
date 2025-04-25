@@ -1,16 +1,20 @@
-
-
 "use server"
 import {db, auth} from "@/firebase/admin"
 import {cookies} from "next/headers"
 import {generateObject} from "ai";
 import {google} from "@ai-sdk/google";
 import {feedbackSchema} from "@/constants";
+import { getCurrentUser } from "./auth.action";
 
 export async function createFeedback(params: CreateFeedbackParams) {
   const { interviewId, userId, transcript, feedbackId } = params;
 
   try {
+    // Get user email information
+    const userDoc = await db.collection("users").doc(userId).get();
+    const userData = userDoc.data();
+    const userEmail = userData?.email || '';
+    
     const formattedTranscript = transcript.map((sentence: { role: string; content: string }) =>
           `- ${sentence.role}: ${sentence.content}\n`
       ).join("");
@@ -39,6 +43,7 @@ export async function createFeedback(params: CreateFeedbackParams) {
     const feedback = {
       interviewId: interviewId,
       userId: userId,
+      userEmail: userEmail,
       totalScore: object.totalScore,
       categoryScores: object.categoryScores,
       strengths: object.strengths,
@@ -129,7 +134,9 @@ export async function getFeedbackByInterviewId(params: GetFeedbackByInterviewIdP
 export async function getCompanyInterviews(params: {limit?: number} = {}): Promise<Interview[] | null> {
   const { limit = 10 } = params;
 
-  const interviews = await db
+  try {
+    // Get admin interviews (with isCompanyInterview)
+    const adminInterviews = await db
       .collection("interviews")
       .where("isCompanyInterview", "==", true)
       .where("isPublic", "==", true)
@@ -137,8 +144,332 @@ export async function getCompanyInterviews(params: {limit?: number} = {}): Promi
       .limit(limit)
       .get();
 
-  return interviews.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Interview[];
+    // Get moderator interviews (with isModeratorInterview)
+    const moderatorInterviews = await db
+      .collection("interviews")
+      .where("isModeratorInterview", "==", true)
+      .where("isPublic", "==", true)
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
+
+    // Combine all interviews with proper typing
+    const combinedInterviews = [
+      ...adminInterviews.docs.map(doc => ({ id: doc.id, ...doc.data() } as Interview)),
+      ...moderatorInterviews.docs.map(doc => ({ id: doc.id, ...doc.data() } as Interview))
+    ];
+
+    // Sort by creation date descending
+    combinedInterviews.sort((a, b) => 
+      new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
+    );
+
+    // Limit the number of interviews returned
+    return combinedInterviews.slice(0, limit);
+  } catch (error) {
+    console.error("Error fetching company interviews:", error);
+    return [];
+  }
+}
+
+export async function createModeratorApplication(params: CreateModeratorApplicationParams) {
+  const { userId, company, reason } = params;
+
+  try {
+    // Get user information
+    const userDoc = await db.collection("users").doc(userId).get();
+    const userData = userDoc.data();
+
+    if (!userData) {
+      return { success: false, message: "User not found" };
+    }
+
+    // Check if user already has a pending application
+    const existingApplications = await db
+      .collection("moderatorApplications")
+      .where("userId", "==", userId)
+      .where("status", "==", "pending")
+      .get();
+
+    if (!existingApplications.empty) {
+      return { 
+        success: false, 
+        message: "You already have a pending application" 
+      };
+    }
+
+    // Create application
+    const application = {
+      userId,
+      userName: userData.name,
+      email: userData.email,
+      company,
+      reason,
+      status: "pending",
+      createdAt: new Date().toISOString()
+    };
+
+    const docRef = await db.collection("moderatorApplications").add(application);
+
+    return { 
+      success: true, 
+      message: "Application submitted successfully" 
+    };
+  } catch (error) {
+    console.error("Error creating moderator application:", error);
+    return { 
+      success: false, 
+      message: "Failed to submit application" 
+    };
+  }
+}
+
+// Check if user is an interview moderator
+export async function isInterviewModerator() {
+  const user = await getCurrentUser();
+  return user?.role === "interview-moderator";
+}
+
+// Create interview as a moderator
+export async function createModeratorInterview(params: {
+  role: string;
+  type: string;
+  level: string;
+  techstack: string[];
+  questions: string[];
+  allowedEmails: string[];
+}) {
+  const { role, type, level, techstack, questions, allowedEmails } = params;
+  
+  try {
+    // Get current user
+    const user = await getCurrentUser();
+    
+    // Verify that the user is a moderator
+    if (user?.role !== "interview-moderator") {
+      return {
+        success: false,
+        message: "Unauthorized: Only interview moderators can create these interviews"
+      };
+    }
+
+    // Create the interview document
+    const interview = {
+      role,
+      type,
+      level,
+      techstack,
+      questions,
+      userId: user.id,
+      creatorName: user.name,
+      company: user.company,
+      isModeratorInterview: true,
+      isPublic: true,
+      moderatorId: user.id,
+      allowedEmails,
+      finalized: true,
+      createdAt: new Date().toISOString()
+    };
+
+    const docRef = await db.collection("interviews").add(interview);
+
+    return {
+      success: true,
+      message: "Interview created successfully",
+      interviewId: docRef.id
+    };
+  } catch (error) {
+    console.error("Error creating moderator interview:", error);
+    return {
+      success: false,
+      message: "Failed to create interview"
+    };
+  }
+}
+
+// Get interviews created by a specific moderator
+export async function getModeratorInterviews(moderatorId: string) {
+  try {
+    const interviews = await db
+      .collection("interviews")
+      .where("moderatorId", "==", moderatorId)
+      .where("isModeratorInterview", "==", true)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    return interviews.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Interview[];
+  } catch (error) {
+    console.error("Error fetching moderator interviews:", error);
+    return [];
+  }
+}
+
+// Get performance reports for a moderator's interviews
+export async function getModeratorFeedbacks(moderatorId: string) {
+  try {
+    // First get all interviews created by this moderator
+    const interviews = await getModeratorInterviews(moderatorId);
+    const interviewIds = interviews.map(interview => interview.id);
+    
+    if (interviewIds.length === 0) {
+      return [];
+    }
+    
+    // Get all feedbacks for these interviews
+    const feedbacks = await db
+      .collection("feedback")
+      .where("interviewId", "in", interviewIds)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    // Get feedback data with basic mapping
+    const feedbackData = feedbacks.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Feedback[];
+
+    // Add user email information to each feedback
+    const feedbacksWithUserInfo = await Promise.all(
+      feedbackData.map(async (feedback) => {
+        if (feedback.userId) {
+          try {
+            const userDoc = await db.collection("users").doc(feedback.userId).get();
+            const userData = userDoc.data();
+            if (userData && userData.email) {
+              return {
+                ...feedback,
+                userEmail: userData.email
+              };
+            }
+          } catch (err) {
+            console.error(`Error fetching user for feedback ${feedback.id}:`, err);
+          }
+        }
+        return feedback;
+      })
+    );
+    
+    return feedbacksWithUserInfo;
+  } catch (error) {
+    console.error("Error fetching moderator feedbacks:", error);
+    return [];
+  }
+}
+
+// Check if a user has access to a moderator interview
+export async function canAccessModeratorInterview(interviewId: string, userId: string) {
+  try {
+    // Get the interview
+    const interview = await getInterviewById(interviewId);
+    
+    if (!interview || !interview.isModeratorInterview) {
+      return false;
+    }
+    
+    // If the user is the moderator who created it, they can access it
+    if (interview.moderatorId === userId) {
+      return true;
+    }
+    
+    // Get the user's email
+    const user = await db.collection("users").doc(userId).get();
+    const userEmail = user.data()?.email;
+    
+    if (!userEmail) {
+      return false;
+    }
+    
+    // Check if the user's email is in the allowed list
+    return interview.allowedEmails && interview.allowedEmails.includes(userEmail);
+  } catch (error) {
+    console.error("Error checking interview access:", error);
+    return false;
+  }
+}
+
+// Update the allowed emails for a moderator interview
+export async function updateModeratorEmails(params: {
+  interviewId: string;
+  allowedEmails: string[];
+}) {
+  const { interviewId, allowedEmails } = params;
+  
+  try {
+    // Get current user
+    const user = await getCurrentUser();
+    
+    // Verify user is logged in
+    if (!user) {
+      return {
+        success: false,
+        message: "You must be logged in to perform this action"
+      };
+    }
+    
+    // Get the interview
+    const interviewDoc = await db.collection("interviews").doc(interviewId).get();
+    const interview = interviewDoc.data();
+    
+    // Check if interview exists
+    if (!interviewDoc.exists || !interview) {
+      return {
+        success: false,
+        message: "Interview not found"
+      };
+    }
+    
+    // Check if user has permission to update this interview
+    if (interview.moderatorId !== user.id && user.role !== 'admin') {
+      return {
+        success: false,
+        message: "You don't have permission to update this interview"
+      };
+    }
+    
+    // Update the interview with new allowed emails
+    await db.collection("interviews").doc(interviewId).update({
+      allowedEmails
+    });
+    
+    return {
+      success: true,
+      message: "Allowed emails updated successfully"
+    };
+  } catch (error) {
+    console.error("Error updating allowed emails:", error);
+    return {
+      success: false,
+      message: "Failed to update allowed emails"
+    };
+  }
+}
+
+// Check if user has already completed a company interview
+export async function hasUserCompletedInterview(interviewId: string, userId: string): Promise<boolean> {
+  try {
+    // Get the interview to check if it's a company interview
+    const interview = await getInterviewById(interviewId);
+    
+    // If it's not a company interview or not found, return false (no restrictions)
+    if (!interview || (!interview.isCompanyInterview && !interview.isModeratorInterview)) {
+      return false;
+    }
+    
+    // Check if there's a feedback for this user and interview
+    const feedbackQuery = await db
+      .collection("feedback")
+      .where("interviewId", "==", interviewId)
+      .where("userId", "==", userId)
+      .limit(1)
+      .get();
+    
+    // If there's a feedback, the user has already completed this interview
+    return !feedbackQuery.empty;
+  } catch (error) {
+    console.error("Error checking if user completed interview:", error);
+    return false; // Default to false on error
+  }
 }

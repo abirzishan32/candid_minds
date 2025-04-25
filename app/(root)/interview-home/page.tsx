@@ -5,10 +5,16 @@ import InterviewCard from "@/components/InterviewCard";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 import { getInterviewByUserId, getLatestInterviews, getCompanyInterviews } from "@/lib/actions/general.action";
 import AuthCheck from "@/components/AuthCheck";
+import ModeratorApplicationButton from "@/components/ModeratorApplicationButton";
+import { notFound } from 'next/navigation';
 
-const Page = async () => {
+const Page = async ({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) => {
     const user = await getCurrentUser();
     const isAuthenticated = !!user;
+
+    // Get query parameters
+    const mockCompleted = searchParams.mock === 'completed';
+    const accessError = searchParams.error === 'no-access';
 
     // Only fetch interviews if user is authenticated
     const [userInterviews, latestInterviews, companyInterviews] = isAuthenticated
@@ -23,8 +29,33 @@ const Page = async () => {
     const hasUpcomingInterviews = latestInterviews?.length! > 0;
     const hasCompanyInterviews = companyInterviews?.length! > 0;
 
+    // Check if user is already a moderator
+    const isModerator = user?.role === "interview-moderator";
+
     return (
         <>
+            {mockCompleted && (
+                <div className="mb-6 bg-green-900/30 border border-green-800 text-green-300 p-4 rounded-lg">
+                    <p className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Mock interview completed successfully! The results were not saved as this was a practice session.
+                    </p>
+                </div>
+            )}
+
+            {accessError && (
+                <div className="mb-6 bg-red-900/30 border border-red-800 text-red-300 p-4 rounded-lg">
+                    <p className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        You don't have access to this interview. Please contact the moderator for access.
+                    </p>
+                </div>
+            )}
+            
             <section className="card-cta rounded-2xl bg-gradient-to-br from-gray-950 to-black p-8 border border-gray-800 shadow-lg backdrop-blur-sm">
                 <div className="flex flex-col gap-6 max-w-lg">
                     <h2 className="text-3xl font-bold text-white">
@@ -35,17 +66,29 @@ const Page = async () => {
                         Practice real interview questions & get instant feedback!
                     </p>
 
-                    <AuthCheck
-                        isAuthenticated={isAuthenticated}
-                        href="/interview-main"
-                        className="btn btn-primary max-sm:w-full group transition-all duration-300 hover:shadow-lg
-                                    hover:shadow-primary/20 hover:-translate-y-1">
+                    <div className="flex flex-wrap gap-4">
+                        <AuthCheck
+                            isAuthenticated={isAuthenticated}
+                            href="/interview-main"
+                            className="btn btn-primary group transition-all duration-300 hover:shadow-lg
+                                        hover:shadow-primary/20 hover:-translate-y-1">
+                            <div className="flex items-center gap-2">
+                                Create an Interview
+                                <span className="group-hover:translate-x-1 transition-transform">→</span>
+                            </div>
+                        </AuthCheck>
 
-                        <div className="flex items-center gap-2">
-                            Create an Interview
-                            <span className="group-hover:translate-x-1 transition-transform">→</span>
-                        </div>
-                    </AuthCheck>
+                        {isAuthenticated && !isModerator && (
+                            <ModeratorApplicationButton userId={user.id} />
+                        )}
+
+                        {isAuthenticated && isModerator && (
+                            <Link href="/moderator-dashboard" className="bg-blue-700 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition-colors flex items-center gap-2">
+                                <span>Moderator Dashboard</span>
+                                <span>→</span>
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
                 <div className="relative">
@@ -65,7 +108,7 @@ const Page = async () => {
                 <section className="flex flex-col gap-6 mt-14">
                     <h2 className="text-2xl font-bold flex items-center gap-2 border-b border-gray-800 pb-2">
                         <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
-                        Company Recruiting Interviews
+                        Company Interviews
                     </h2>
                     <div className="interviews-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {companyInterviews?.map((interview) => (

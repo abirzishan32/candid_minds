@@ -9,7 +9,8 @@ import {
   FaUsers, 
   FaUserPlus,
   FaComments,
-  FaChartLine
+  FaChartLine,
+  FaBuilding
 } from "react-icons/fa";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -73,6 +74,12 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       href: '/create-interview',
       icon: FaUserPlus,
       active: pathname.startsWith('/create-interview')
+    },
+    {
+      name: 'Moderator Applications',
+      href: '/moderator-applications',
+      icon: FaBuilding,
+      active: pathname.startsWith('/moderator-applications')
     },
     {
       name: 'User Management',

@@ -370,3 +370,114 @@ export async function updateInterview(params: {
         };
     }
 }
+
+// Get all moderator applications
+export async function getModeratorApplications(): Promise<{
+  success: boolean;
+  message?: string;
+  applications: ModeratorApplication[];
+}> {
+  try {
+    // Verify that the user is an admin
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return {
+        success: false,
+        message: "Unauthorized: Only admins can view applications",
+        applications: [] as ModeratorApplication[]
+      };
+    }
+
+    // Fetch all applications, newest first
+    const applicationsSnapshot = await db
+      .collection("moderatorApplications")
+      .orderBy("createdAt", "desc")
+      .get();
+
+    const applications = applicationsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as ModeratorApplication[];
+
+    return {
+      success: true,
+      applications
+    };
+  } catch (error) {
+    console.error("Error fetching moderator applications:", error);
+    return {
+      success: false,
+      message: "Failed to fetch applications",
+      applications: [] as ModeratorApplication[]
+    };
+  }
+}
+
+// Approve or reject moderator application
+export async function updateModeratorApplication(params: {
+  applicationId: string;
+  status: 'approved' | 'rejected';
+}) {
+  const { applicationId, status } = params;
+
+  try {
+    // Verify that the user is an admin
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return {
+        success: false,
+        message: "Unauthorized: Only admins can update applications"
+      };
+    }
+
+    // Get the application
+    const applicationDoc = await db
+      .collection("moderatorApplications")
+      .doc(applicationId)
+      .get();
+
+    if (!applicationDoc.exists) {
+      return {
+        success: false,
+        message: "Application not found"
+      };
+    }
+
+    const application = applicationDoc.data();
+    
+    if (!application) {
+      return {
+        success: false,
+        message: "Application data is missing"
+      };
+    }
+
+    // Update application status
+    await db
+      .collection("moderatorApplications")
+      .doc(applicationId)
+      .update({
+        status,
+        updatedAt: new Date().toISOString()
+      });
+
+    // If approved, update user role
+    if (status === 'approved') {
+      await db.collection("users").doc(application.userId).update({
+        role: 'interview-moderator',
+        company: application.company
+      });
+    }
+
+    return {
+      success: true,
+      message: `Application ${status} successfully`
+    };
+  } catch (error) {
+    console.error("Error updating moderator application:", error);
+    return {
+      success: false,
+      message: "Failed to update application"
+    };
+  }
+}
