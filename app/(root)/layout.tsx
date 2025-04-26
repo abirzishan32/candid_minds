@@ -8,14 +8,14 @@ import NotificationBell from '@/components/NotificationBell';
 const RootLayout = async ({ children }: { children: ReactNode }) => {
     const user = await getCurrentUser();
     const isUserAuth = !!user;
-    const isModerator = user?.role === 'MODERATOR';
+    const isModerator = user?.role === 'interview-moderator';
 
     return (
         <div className="root-layout">
             <nav className="flex justify-between items-center px-4 py-3">
                 <div className="flex items-center gap-4">
-                    <Link href="/interview-home" className="flex items-center gap-2">
-                        <Image src="/logo.svg" alt="Candid Minds" width={38} height={32} />
+                    <Link href="/" className="flex items-center gap-2">
+                        <Image src="/candid-minds-logo.png" alt="Candid Minds" width={38} height={32} />
                         <h2 className="text-primary-100"> Candid Minds </h2>
                     </Link>
                     
