@@ -3,10 +3,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 import SignOutButton from '@/components/SignOutButton';
+import NotificationBell from '@/components/NotificationBell';
 
 const RootLayout = async ({ children }: { children: ReactNode }) => {
     const user = await getCurrentUser();
     const isUserAuth = !!user;
+    const isModerator = user?.role === 'MODERATOR';
 
     return (
         <div className="root-layout">
@@ -31,14 +33,24 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                         <Link href="/job-market" className="text-gray-300 hover:text-primary-100 transition">
                             Job Market Insights
                         </Link>
+                        {isModerator && (
+                            <Link href="/moderator-dashboard" className="text-gray-300 hover:text-primary-100 transition">
+                                Moderator Dashboard
+                            </Link>
+                        )}
                     </div>
                 </div>
 
                 <div>
                     {isUserAuth ? (
-                        <div className="flex items-center gap-2">
-                            <span className="text-primary-100">{user?.name}</span>
-                            <SignOutButton />
+                        <div className="flex items-center gap-4">
+                            {/* Notification Bell */}
+                            <NotificationBell />
+                            
+                            <div className="flex items-center gap-2">
+                                <span className="text-primary-100">{user?.name}</span>
+                                <SignOutButton />
+                            </div>
                         </div>
                     ) : (
                         <Link href="/sign-in" className="text-primary-100 hover:text-primary-200">

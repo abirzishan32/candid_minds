@@ -16,7 +16,6 @@ const InterviewResultsPage = ({ params }: InterviewResultsPageProps) => {
   const [interview, setInterview] = useState<any>(null);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedAssessment, setExpandedAssessment] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,14 +41,6 @@ const InterviewResultsPage = ({ params }: InterviewResultsPageProps) => {
     
     fetchData();
   }, [params.id, router]);
-  
-  const toggleAssessment = (feedbackId: string) => {
-    if (expandedAssessment === feedbackId) {
-      setExpandedAssessment(null);
-    } else {
-      setExpandedAssessment(feedbackId);
-    }
-  };
   
   if (isLoading) {
     return (
@@ -147,17 +138,10 @@ const InterviewResultsPage = ({ params }: InterviewResultsPageProps) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                         {new Date(feedback.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-300">
-                        <div className={expandedAssessment === feedback.id ? "" : "line-clamp-2"}>
-                          {feedback.finalAssessment}
-                        </div>
-                        <button 
-                          onClick={() => toggleAssessment(feedback.id)}
-                          className="text-blue-400 hover:text-blue-300 text-xs mt-1"
-                        >
-                          {expandedAssessment === feedback.id ? "Show less" : "Show more"}
-                        </button>
+                      <td className="px-6 py-4 text-sm text-gray-300 max-w-[300px] truncate">
+                        {feedback.finalAssessment}
                       </td>
+                      
                     </tr>
                   ))}
                 </tbody>

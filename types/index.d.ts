@@ -48,6 +48,8 @@ interface Feedback {
     lastActive?: string;
     createdAt?: string;
     company?: string;
+    companyWebsite?: string;
+    position?: string;
     allowedEmails?: string[];
   }
 
@@ -82,8 +84,8 @@ interface Feedback {
   }
   
   interface RouteParams {
-    params: Promise<Record<string, string>>;
-    searchParams: Promise<Record<string, string>>;
+    params: Record<string, string>;
+    searchParams: Record<string, string>;
   }
   
   interface GetFeedbackByInterviewIdParams {
@@ -159,8 +161,15 @@ interface ModeratorApplication {
   userName: string;
   email: string;
   company: string;
+  companyWebsite: string;
+  workEmail: string;
+  position: string;
+  linkedinProfile: string;
+  employeeId?: string;
+  verificationDocumentURL?: string;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -168,5 +177,11 @@ interface ModeratorApplication {
 interface CreateModeratorApplicationParams {
   userId: string;
   company: string;
+  companyWebsite: string;
+  workEmail: string;
+  position: string;
+  linkedinProfile: string;
+  employeeId?: string;
+  verificationDocumentURL?: string;
   reason: string;
 }

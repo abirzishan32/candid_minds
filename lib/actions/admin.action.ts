@@ -388,9 +388,10 @@ export async function getModeratorApplications(): Promise<{
       };
     }
 
-    // Fetch all applications, newest first
+    // Fetch only pending applications, newest first
     const applicationsSnapshot = await db
       .collection("moderatorApplications")
+      .where("status", "==", "pending")
       .orderBy("createdAt", "desc")
       .get();
 
@@ -417,8 +418,9 @@ export async function getModeratorApplications(): Promise<{
 export async function updateModeratorApplication(params: {
   applicationId: string;
   status: 'approved' | 'rejected';
+  rejectionReason?: string;
 }) {
-  const { applicationId, status } = params;
+  const { applicationId, status, rejectionReason } = params;
 
   try {
     // Verify that the user is an admin
@@ -453,20 +455,58 @@ export async function updateModeratorApplication(params: {
     }
 
     // Update application status
+    const updateData: any = {
+      status,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Add rejection reason if provided and status is rejected
+    if (status === 'rejected' && rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
+    }
+
     await db
       .collection("moderatorApplications")
       .doc(applicationId)
-      .update({
-        status,
-        updatedAt: new Date().toISOString()
-      });
+      .update(updateData);
 
-    // If approved, update user role
+    // If approved, update user role and company information
     if (status === 'approved') {
       await db.collection("users").doc(application.userId).update({
         role: 'interview-moderator',
-        company: application.company
+        company: application.company,
+        companyWebsite: application.companyWebsite,
+        position: application.position
       });
+    }
+
+    // Send real-time notification to the user
+    try {
+      const { sendApplicationStatusUpdate } = await import('@/app/api/socket/route');
+      
+      const notificationMessage = status === 'approved' 
+        ? `Your application to become a moderator for ${application.company} has been approved! You can now create and manage interviews.`
+        : `Your application to become a moderator for ${application.company} has been rejected${rejectionReason ? ': ' + rejectionReason : '.'}`;
+      
+      sendApplicationStatusUpdate(application.userId, {
+        applicationId,
+        status,
+        message: notificationMessage
+      });
+      
+      // Also store the notification in the database for persistence
+      await db.collection("notifications").add({
+        userId: application.userId,
+        type: status === 'approved' ? 'success' : 'error',
+        message: notificationMessage,
+        read: false,
+        relatedTo: 'moderatorApplication',
+        relatedId: applicationId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      // Continue execution even if notification fails
     }
 
     return {

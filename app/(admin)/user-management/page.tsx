@@ -4,6 +4,8 @@ import { getAllUsers } from '@/lib/actions/admin.action';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import UserRoleButton from '@/components/admin/UserRoleButton';
+import { Building2, Users, UserCheck, UserPlus, Clock } from 'lucide-react';
+import UserDetailClient from './UserDetailClient';
 
 const convertSecondsToDate = (seconds: number | null | undefined) => {
     if (!seconds) return null;
@@ -16,6 +18,20 @@ const formatDate = (seconds: number | null | undefined) => {
     return date ? date.toLocaleDateString() : 'Unknown';
 };
 
+const formatTimeAgo = (seconds: number | null | undefined) => {
+    if (!seconds) return 'Never';
+    const date = convertSecondsToDate(seconds);
+    if (!date) return 'Unknown';
+    
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 30) return `${diff} days ago`;
+    if (diff < 365) return `${Math.floor(diff / 30)} months ago`;
+    return `${Math.floor(diff / 365)} years ago`;
+};
 
 const UserManagement = async () => {
     const admin = await getCurrentUser();
@@ -24,7 +40,12 @@ const UserManagement = async () => {
     // Calculate total number of users
     const totalUsers = users.length;
 
-    // Calculate total number of active users
+    // Calculate user counts by role
+    const adminCount = users.filter(user => user.role === 'admin').length;
+    const moderatorCount = users.filter(user => user.role === 'interview-moderator').length;
+    const regularUserCount = users.filter(user => user.role === 'user').length;
+
+    // Calculate active users (users who were active in the last 30 days)
     const activeUsers = users.filter(user => {
         if (!user.lastActive) return false;
         try {
@@ -37,6 +58,7 @@ const UserManagement = async () => {
         }
     }).length;
 
+    // Calculate new users in the last 7 days
     const newUsers = users.filter(user => {
         if (!user.createdAt) return false;
         try {
@@ -48,7 +70,7 @@ const UserManagement = async () => {
         }
     }).length;
 
-
+    // Helper function to determine if a user is active (last active within 7 days)
     const isUserActive = (lastActiveSeconds: number | null | undefined) => {
         if (!lastActiveSeconds) return false;
         try {
@@ -59,7 +81,6 @@ const UserManagement = async () => {
             return false;
         }
     };
-
 
     return (
         <section className="max-w-7xl mx-auto bg-gray-900 p-8 rounded-xl border border-gray-800 shadow-lg">
@@ -77,18 +98,34 @@ const UserManagement = async () => {
             </div>
 
             {/* User Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
                 <div className="bg-black bg-opacity-70 p-4 rounded-xl border border-gray-800 shadow-inner">
-                    <h3 className="text-gray-400 text-sm mb-1">Total Users</h3>
-                    <p className="text-3xl font-bold text-white">{totalUsers}</p>
+                    <div className="flex items-center gap-3">
+                        <Users className="h-6 w-6 text-primary-100" />
+                        <h3 className="text-gray-400 text-sm">Total Users</h3>
+                    </div>
+                    <p className="text-3xl font-bold text-white mt-2">{totalUsers}</p>
                 </div>
+                
+                
+                
+                
                 <div className="bg-black bg-opacity-70 p-4 rounded-xl border border-gray-800 shadow-inner">
-                    <h3 className="text-gray-400 text-sm mb-1">Active Users (30d)</h3>
-                    <p className="text-3xl font-bold text-primary-100">{activeUsers}</p>
+                    <div className="flex items-center gap-3">
+                        <svg className="h-6 w-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <h3 className="text-gray-400 text-sm">Admins</h3>
+                    </div>
+                    <p className="text-3xl font-bold text-amber-400 mt-2">{adminCount}</p>
                 </div>
+                
                 <div className="bg-black bg-opacity-70 p-4 rounded-xl border border-gray-800 shadow-inner">
-                    <h3 className="text-gray-400 text-sm mb-1">New Users (7d)</h3>
-                    <p className="text-3xl font-bold text-green-400">{newUsers}</p>
+                    <div className="flex items-center gap-3">
+                        <Building2 className="h-6 w-6 text-blue-400" />
+                        <h3 className="text-gray-400 text-sm">Moderators</h3>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-400 mt-2">{moderatorCount}</p>
                 </div>
             </div>
 
@@ -106,70 +143,13 @@ const UserManagement = async () => {
                 />
             </div>
 
-            {/* Users Table */}
-            <div className="overflow-x-auto rounded-xl border border-gray-800 shadow-inner">
-                <table className="min-w-full bg-black bg-opacity-60">
-                    <thead className="bg-gray-800 text-left">
-                    <tr>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">User ID</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800">
-                    {users.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-900 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-10 w-10 relative">
-                                        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary-100/30 to-primary-200/30 animate-pulse"></div>
-                                        <div className="absolute inset-0.5 rounded-full bg-gray-800 flex items-center justify-center text-xl text-white">
-                                            {user.name ? user.name.charAt(0).toUpperCase() : '?'}
-                                        </div>
-                                    </div>
-                                    <div className="ml-4">
-                                        <div className="text-sm font-medium text-white">{user.name}</div>
-
-                                    </div>
-                                </div>
-
-                            </td>
-
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-400">{user.id.substring(0, 8)}...</div>
-                            </td>
-
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-300">{user.email}</div>
-                            </td>
-
-
-
-
-
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <UserRoleButton userId={user.id} currentRole={user.role} />
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div className="flex space-x-2 justify-end">
-
-                                    <Button className="bg-red-900/50 hover:bg-red-900 text-red-300 text-xs py-1 px-2 border border-red-800">
-                                        Suspend
-                                    </Button>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
+            {/* Client Component for handling the user details modal */}
+            <UserDetailClient users={users} />
 
             {/* Pagination */}
             <div className="flex justify-between items-center mt-6 px-4 py-3 bg-black bg-opacity-60 border border-gray-800 rounded-lg">
                 <div className="text-sm text-gray-400">
-                    Showing <span className="font-medium text-white">1</span> to <span className="font-medium text-white">10</span> of <span className="font-medium text-white">{totalUsers}</span> users
+                    Showing <span className="font-medium text-white">1</span> to <span className="font-medium text-white">{Math.min(users.length, 10)}</span> of <span className="font-medium text-white">{totalUsers}</span> users
                 </div>
                 <div className="flex space-x-2">
                     <Button className="bg-gray-800 hover:bg-gray-700 text-white text-sm">Previous</Button>

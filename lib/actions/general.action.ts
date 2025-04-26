@@ -173,7 +173,17 @@ export async function getCompanyInterviews(params: {limit?: number} = {}): Promi
 }
 
 export async function createModeratorApplication(params: CreateModeratorApplicationParams) {
-  const { userId, company, reason } = params;
+  const { 
+    userId, 
+    company, 
+    companyWebsite,
+    workEmail,
+    position,
+    linkedinProfile,
+    employeeId,
+    verificationDocumentURL,
+    reason 
+  } = params;
 
   try {
     // Get user information
@@ -198,12 +208,18 @@ export async function createModeratorApplication(params: CreateModeratorApplicat
       };
     }
 
-    // Create application
+    // Create application with the additional verification information
     const application = {
       userId,
       userName: userData.name,
       email: userData.email,
       company,
+      companyWebsite,
+      workEmail,
+      position,
+      linkedinProfile,
+      employeeId: employeeId || null,
+      verificationDocumentURL: verificationDocumentURL || null,
       reason,
       status: "pending",
       createdAt: new Date().toISOString()

@@ -13,7 +13,7 @@ const UserRoleButton = ({ userId, currentRole = 'user' }: UserRoleButtonProps) =
     const [role, setRole] = useState(currentRole);
     const [isChanging, setIsChanging] = useState(false);
 
-    const handleRoleChange = async (newRole: 'user' | 'admin') => {
+    const handleRoleChange = async (newRole: 'user' | 'admin' | 'interview-moderator') => {
         if (newRole === role) return;
         setIsChanging(true);
 
@@ -33,7 +33,7 @@ const UserRoleButton = ({ userId, currentRole = 'user' }: UserRoleButtonProps) =
     };
 
     return (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-wrap">
             <Button
                 className={`text-xs py-1 px-2 ${
                     role === 'user'
@@ -55,6 +55,17 @@ const UserRoleButton = ({ userId, currentRole = 'user' }: UserRoleButtonProps) =
                 disabled={isChanging || role === 'admin'}
             >
                 Admin
+            </Button>
+            <Button
+                className={`text-xs py-1 px-2 ${
+                    role === 'interview-moderator'
+                        ? 'bg-blue-900/50 text-blue-300 border border-blue-800'
+                        : 'bg-gray-800 text-gray-400 border border-gray-700'
+                }`}
+                onClick={() => handleRoleChange('interview-moderator')}
+                disabled={isChanging || role === 'interview-moderator'}
+            >
+                Moderator
             </Button>
         </div>
     );

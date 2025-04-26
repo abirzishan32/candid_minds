@@ -4,6 +4,9 @@ import { isAdmin } from '@/lib/actions/auth.action';
 import AdminCheck from '@/components/AdminCheck';
 import ModeratorApplicationsTable from '@/components/ModeratorApplicationsTable';
 
+// Use a dynamic segment to force revalidation on each request
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const ModeratorApplicationsPage = async () => {
   const userIsAdmin = await isAdmin();
@@ -22,7 +25,7 @@ const ModeratorApplicationsPage = async () => {
         ) : (
           <div className="bg-gray-950 border border-gray-800 rounded-xl p-8 text-center">
             <p className="text-gray-400">
-              {success ? "No applications found" : "Error loading applications"}
+              {success ? "No pending applications" : "Error loading applications"}
             </p>
           </div>
         )}

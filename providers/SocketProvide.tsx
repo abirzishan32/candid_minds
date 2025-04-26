@@ -2,7 +2,6 @@
 
 import { SocketContextProvider } from "../context/SocketContext"
 
-
 const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <SocketContextProvider>

@@ -6,9 +6,15 @@ import { Button } from '@/components/ui/button';
 import InterviewManagementTable from '@/components/admin/InterviewManagementTable';
 import InterviewSearchFilter from '@/components/admin/InterviewSearchFilter';
 
-const ManageInterviewPage = async ({ searchParams }: { searchParams: { search?: string } }) => {
+interface PageProps {
+    searchParams: {
+        search?: string;
+    };
+}
+
+const ManageInterviewPage = async ({ searchParams }: PageProps) => {
     const user = await getCurrentUser();
-    const searchQuery = searchParams.search || '';
+    const searchQuery = searchParams?.search || '';
 
     // Get interviews and ensure they match the Interview interface
     const { interviews: fetchedInterviews } = await getAllInterviews();

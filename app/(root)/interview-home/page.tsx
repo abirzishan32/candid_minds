@@ -8,13 +8,20 @@ import AuthCheck from "@/components/AuthCheck";
 import ModeratorApplicationButton from "@/components/ModeratorApplicationButton";
 import { notFound } from 'next/navigation';
 
-const Page = async ({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) => {
+interface PageProps {
+    searchParams: {
+        mock?: string;
+        error?: string;
+    };
+}
+
+const Page = async ({ searchParams }: PageProps) => {
     const user = await getCurrentUser();
     const isAuthenticated = !!user;
 
-    // Get query parameters
-    const mockCompleted = searchParams.mock === 'completed';
-    const accessError = searchParams.error === 'no-access';
+    // Get query parameters - use proper TypeScript access
+    const mockCompleted = searchParams?.mock === 'completed';
+    const accessError = searchParams?.error === 'no-access';
 
     // Only fetch interviews if user is authenticated
     const [userInterviews, latestInterviews, companyInterviews] = isAuthenticated

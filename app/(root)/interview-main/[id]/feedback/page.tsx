@@ -10,12 +10,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 
-const Feedback = async ({ params, searchParams }: { params: { id: string }, searchParams: { [key: string]: string | string[] | undefined } }) => {
+interface PageProps {
+    params: {
+        id: string;
+    };
+    searchParams: {
+        completed?: string;
+    };
+}
+
+const Feedback = async ({ params, searchParams }: PageProps) => {
     const { id } = params;
     const user = await getCurrentUser();
     
     // Check if the user was redirected here because they already completed the interview
-    const alreadyCompleted = searchParams.completed === 'true';
+    const alreadyCompleted = searchParams?.completed === 'true';
 
     const interview = await getInterviewById(id);
     if (!interview) redirect("/");
