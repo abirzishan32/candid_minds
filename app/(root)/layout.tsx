@@ -56,7 +56,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-6">
                         <Link href="/" className="flex items-center gap-3 group">
-                            <div className="relative overflow-hidden rounded-full nav-logo-glow bg-gradient-to-r from-primary-100 to-blue-600 p-0.5">
+                            <div className="relative overflow-hidden rounded-full  p-0.5">
                                 <Image 
                                     src="/candid-minds-logo.png" 
                                     alt="Candid Minds" 

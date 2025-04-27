@@ -32,12 +32,12 @@ export default async function HomePage() {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 <span className="block">Ace Your Interviews with</span>
                 <span className="bg-gradient-to-r from-primary-100 to-blue-600 bg-clip-text text-transparent">
-                  AI-Powered Voice Assistant
+                  Candid Minds
                 </span>
               </h1>
               
               <p className="text-lg text-gray-400 leading-relaxed max-w-lg">
-                Prepare for tech interviews with realistic AI-driven mock interviews, personalized feedback, and data-driven skill assessments.
+                Prepare for tech interviews with realistic AI-driven mock interviews, personalized feedback, data-driven skill assessments and ATS-optimized resumes.
               </p>
               
               <div className="flex flex-wrap gap-4 pt-4">
@@ -245,55 +245,15 @@ export default async function HomePage() {
             
             <div>
               <div className="relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-20"></div>
-                <div className="relative bg-gray-900 border border-gray-800 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">Proctored Assessment</h3>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-500">Live Monitoring</span>
-                    </div>
-                  </div>
-                  
-                  <div className="border border-gray-800 rounded-lg p-4 mb-6 bg-black/40">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-gray-400 text-sm">Frontend Development</span>
-                      <span className="text-sm bg-blue-900/50 text-blue-400 px-2 py-0.5 rounded">In Progress</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-white mb-1">Question 17/30</p>
-                        <div className="w-full h-1.5 bg-gray-800 rounded-full">
-                          <div className="h-1.5 bg-primary-100 rounded-full" style={{width: '56%'}}></div>
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-400 flex items-center gap-2">
-                        <svg className="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        Eye tracking active - Please maintain focus
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Available Assessment Topics</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        "Frontend Development", 
-                        "Backend Architecture",
-                        "Data Structures", 
-                        "System Design",
-                        "Cloud Infrastructure", 
-                        "Machine Learning"
-                      ].map((topic, index) => (
-                        <div key={index} className="bg-gray-800/50 border border-gray-800 rounded-lg p-2 text-sm text-gray-300 flex items-center gap-2">
-                          <div className="h-2 w-2 bg-primary-100 rounded-full"></div>
-                          {topic}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-30"></div>
+                <div className="relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
+                  <Image 
+                    src="/skill-assessment.png"
+                    alt="Skill Assessment Platform"
+                    width={600}
+                    height={400}
+                    className="w-full rounded-lg shadow-lg object-cover"
+                  />
                 </div>
               </div>
             </div>
@@ -306,7 +266,22 @@ export default async function HomePage() {
         <div className="absolute top-0 left-0 w-1/3 h-1/3 bg-blue-600/10 blur-[100px] rounded-full"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
+            <div className="order-2 lg:order-1">
+              <div className="relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-30"></div>
+                <div className="relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
+                  <Image 
+                    src="/resume.jpg"
+                    alt="Resume Builder Preview"
+                    width={600}
+                    height={400}
+                    className="w-full rounded-lg shadow-lg object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="order-1 lg:order-2">
               <div className="inline-block bg-gradient-to-r from-primary-100 to-blue-600 bg-clip-text mb-4">
                 <p className="uppercase tracking-wider text-transparent font-semibold">AI-Powered Resume Builder</p>
               </div>
@@ -357,26 +332,9 @@ export default async function HomePage() {
                 </Button>
               </Link>
             </div>
-            
-            <div>
-              <div className="relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-30"></div>
-                <div className="relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
-                  <Image 
-                    src="/resume.jpg"
-                    alt="Resume Builder Preview"
-                    width={600}
-                    height={400}
-                    className="w-full rounded-lg shadow-lg object-cover"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
-
-     
 
       {/* Career Interview Experiences Section */}
       <section className="py-20 bg-gray-950 relative overflow-hidden">
@@ -438,100 +396,15 @@ export default async function HomePage() {
             
             <div>
               <div className="relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-20"></div>
-                <div className="relative bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-                  <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-                    <h3 className="text-lg font-medium text-white">Recent Experiences</h3>
-                    <div className="text-xs px-2 py-1 bg-blue-600/20 text-blue-400 rounded-full">
-                      Trending
-                    </div>
-                  </div>
-                  
-                  <div className="divide-y divide-gray-800">
-                    {[
-                      {
-                        company: "TechGiant Inc.",
-                        position: "Senior Frontend Engineer",
-                        experience: "positive",
-                        date: "2 weeks ago",
-                        questions: ["Explain how React's virtual DOM works", "Design a component to handle infinite scrolling"]
-                      },
-                      {
-                        company: "DataSphere",
-                        position: "Machine Learning Engineer",
-                        experience: "neutral",
-                        date: "3 weeks ago",
-                        questions: ["Explain overfitting and how to prevent it", "Design a recommendation system for an e-commerce site"]
-                      },
-                      {
-                        company: "StartupX",
-                        position: "Full Stack Developer",
-                        experience: "positive",
-                        date: "1 month ago",
-                        questions: ["How would you optimize database queries?", "Implement authentication in a microservices architecture"]
-                      }
-                    ].map((item, index) => (
-                      <div key={index} className="p-4 hover:bg-gray-800/30 transition-colors">
-                        <div className="flex items-start mb-2">
-                          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm mr-3">
-                            {item.company.charAt(0)}
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-white flex items-center">
-                              {item.company}
-                              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs border ${
-                                item.experience === 'positive' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
-                                item.experience === 'neutral' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
-                                'bg-red-500/10 border-red-500/20 text-red-500'
-                              }`}>
-                                {item.experience.charAt(0).toUpperCase() + item.experience.slice(1)}
-                              </span>
-                            </h4>
-                            <p className="text-gray-400 text-xs">{item.position} · {item.date}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-800/50 p-2 rounded-md border border-gray-800 mb-2">
-                          <h5 className="text-xs font-medium text-gray-300 mb-1">Interview Questions:</h5>
-                          <ul className="text-gray-400 text-xs space-y-1">
-                            {item.questions.map((q, i) => (
-                              <li key={i} className="flex gap-1.5">
-                                <span className="text-blue-400">Q:</span>
-                                <span className="line-clamp-1">{q}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <div className="flex items-center gap-3">
-                            <span className="flex items-center gap-1">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                              </svg>
-                              12
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                              </svg>
-                              5
-                            </span>
-                          </div>
-                          <span className="text-blue-400 hover:underline cursor-pointer">Read more</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="p-4 border-t border-gray-800 text-center">
-                    <Link 
-                      href="/career" 
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                    >
-                      View all experiences
-                    </Link>
-                  </div>
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-30"></div>
+                <div className="relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
+                  <Image 
+                    src="/career.png"
+                    alt="Career Interview Experiences"
+                    width={600}
+                    height={400}
+                    className="w-full rounded-lg shadow-lg object-cover"
+                  />
                 </div>
               </div>
             </div>
@@ -539,62 +412,176 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gray-950 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 z-0"></div>
-        <div className="absolute -top-40 -right-40 h-80 w-80 bg-primary-100 opacity-10 blur-[100px] rounded-full z-0"></div>
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 bg-blue-700 opacity-10 blur-[100px] rounded-full z-0"></div>
+     
+
+      {/* Enterprise Partners Section */}
+      <section className="py-16 bg-black relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/4 h-1/4 bg-primary-100/5 blur-[100px] rounded-full"></div>
+        <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-blue-600/5 blur-[100px] rounded-full"></div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-8 md:p-12 text-center max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Interview Preparation?</h2>
-            <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-              Join thousands of professionals using our AI-powered platform to ace interviews, verify skills, build standout resumes, and connect with industry insiders.
-            </p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="p-4 bg-gray-900/50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-primary-100">5,000+</p>
-                <p className="text-xs text-gray-400">Practice Interviews</p>
+          <div className="max-w-4xl mx-auto bg-gradient-to-br from-gray-900/90 to-gray-950/90 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-8 shadow-xl">
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="w-full md:w-3/4">
+                <div className="inline-block bg-gradient-to-r from-primary-100 to-blue-600 bg-clip-text mb-3">
+                  <p className="uppercase tracking-wider text-transparent font-semibold">Enterprise Partnership</p>
+                </div>
+                
+                <h3 className="text-2xl md:text-3xl font-bold mb-4">
+                  Want to host your company's interviews on Candid Minds?
+                </h3>
+                
+                <p className="text-gray-400 mb-5">
+                  Leverage our neural-powered interview platform to streamline your talent acquisition pipeline. Our generative AI and large language models create custom-calibrated interview experiences aligned with your company's unique evaluation frameworks and technical benchmarks.
+                </p>
+                
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                  <li className="flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary-100/20 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-primary-100"></div>
+                    </div>
+                    <span className="text-sm text-gray-300">Multimodal interview assessment</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary-100/20 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-primary-100"></div>
+                    </div>
+                    <span className="text-sm text-gray-300">Transformer-based skill validation</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary-100/20 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-primary-100"></div>
+                    </div>
+                    <span className="text-sm text-gray-300">Automated talent intelligence</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary-100/20 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-primary-100"></div>
+                    </div>
+                    <span className="text-sm text-gray-300">Quantum-level data insights</span>
+                  </li>
+                </ul>
               </div>
-              <div className="p-4 bg-gray-900/50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-primary-100">10,000+</p>
-                <p className="text-xs text-gray-400">Skill Assessments</p>
-              </div>
-              <div className="p-4 bg-gray-900/50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-primary-100">3,500+</p>
-                <p className="text-xs text-gray-400">Resumes Built</p>
-              </div>
-              <div className="p-4 bg-gray-900/50 rounded-lg text-center">
-                <p className="text-2xl font-bold text-primary-100">95%</p>
-                <p className="text-xs text-gray-400">Success Rate</p>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {isAuthenticated ? (
-                <Link href="/interview-home">
-                  <Button size="lg" className="bg-primary-100 hover:bg-primary-200 text-black font-medium w-full sm:w-auto">
-                    Start Preparing Now
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/sign-up">
-                  <Button size="lg" className="bg-primary-100 hover:bg-primary-200 text-black font-medium w-full sm:w-auto">
-                    Create Free Account
-                  </Button>
-                </Link>
-              )}
               
-              <Link href="#features">
-                <Button size="lg" variant="outline" className="border-gray-700 hover:bg-gray-900 hover:border-gray-600 w-full sm:w-auto">
-                  Explore All Features
-                </Button>
-              </Link>
+              <div className="w-full md:w-1/4 flex justify-center">
+                <Link href="/enterprise-inquiry" className="group">
+                  <div className="relative w-40 h-40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary-100/20 to-blue-600/20 rounded-full blur-md group-hover:blur-lg transition-all"></div>
+                    <div className="absolute inset-0 border border-primary-100/30 rounded-full"></div>
+                    <div className="bg-gray-900 rounded-full w-36 h-36 flex flex-col items-center justify-center transform transition-transform group-hover:scale-105 duration-300">
+                      <p className="text-primary-100 font-semibold">Apply Now</p>
+                      <div className="mt-2 flex items-center justify-center w-8 h-8 rounded-full bg-primary-100/10">
+                        <ChevronRight className="h-4 w-4 text-primary-100" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-950 border-t border-gray-800/50 pt-16 pb-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 z-0"></div>
+        <div className="absolute top-0 left-1/4 w-1/3 h-1/3 bg-blue-600/5 blur-[150px] rounded-full"></div>
+        <div className="absolute bottom-0 right-1/4 w-1/3 h-1/3 bg-primary-100/5 blur-[150px] rounded-full"></div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+            {/* Logo & Description */}
+            <div className="col-span-1 md:col-span-1">
+              <Link href="/" className="flex items-center gap-3 group mb-4">
+                <div className="relative overflow-hidden rounded-full nav-logo-glow bg-gradient-to-r from-primary-100 to-blue-600 p-0.5">
+                  <Image 
+                    src="/candid-minds-logo.png" 
+                    alt="Candid Minds" 
+                    width={32} 
+                    height={32}
+                    className="rounded-full" 
+                  />
+                </div>
+                <h2 className="text-primary-100 font-bold tracking-wide text-lg"> 
+                  Candid<span className="text-white">Minds</span>
+                </h2>
+              </Link>
+              <p className="text-gray-400 text-sm mb-6">
+                The AI-powered platform revolutionizing interview preparation and career advancement through neural simulations and data-driven insights.
+              </p>
+              <div className="flex gap-4">
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors">
+                  <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                  </svg>
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors">
+                  <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z"/>
+                  </svg>
+                </a>
+                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors">
+                  <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+            
+            {/* Quick Links */}
+            <div className="col-span-1">
+              <h3 className="text-white font-semibold mb-4">Product</h3>
+              <ul className="space-y-3">
+                <li><Link href="/interview-home" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">AI Interviews</Link></li>
+                <li><Link href="/skill-assessment" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Skill Assessment</Link></li>
+                <li><Link href="/resume-checker" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Resume Builder</Link></li>
+                <li><Link href="/job-market" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Job Market Insights</Link></li>
+                <li><Link href="/career" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Interview Experiences</Link></li>
+              </ul>
+            </div>
+            
+            {/* Resources */}
+            <div className="col-span-1">
+              <h3 className="text-white font-semibold mb-4">Resources</h3>
+              <ul className="space-y-3">
+                <li><Link href="/blog" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Blog</Link></li>
+                <li><Link href="/success-stories" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Success Stories</Link></li>
+                <li><Link href="/help-center" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Help Center</Link></li>
+                <li><Link href="/faq" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">FAQ</Link></li>
+                <li><Link href="/enterprise-inquiry" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Enterprise</Link></li>
+              </ul>
+            </div>
+            
+            {/* Company */}
+            <div className="col-span-1">
+              <h3 className="text-white font-semibold mb-4">Company</h3>
+              <ul className="space-y-3">
+                <li><Link href="/about" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">About Us</Link></li>
+                <li><Link href="/careers" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Careers</Link></li>
+                <li><Link href="/contact" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Contact</Link></li>
+                <li><Link href="/privacy" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-gray-400 hover:text-primary-100 text-sm transition-colors">Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t border-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-sm">
+              © {new Date().getFullYear()} CandidMinds Inc. All rights reserved.
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-gray-900 rounded text-xs text-gray-400">
+                <span className="font-medium">Powered by</span> Neural Networks & LLMs
+              </span>
+              <div className="flex items-center space-x-1">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                <span className="text-xs text-gray-400">API Status: Operational</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
