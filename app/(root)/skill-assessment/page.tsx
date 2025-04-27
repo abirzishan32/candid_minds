@@ -5,25 +5,49 @@ import { useRouter } from "next/navigation";
 import { getSkillAssessments } from "@/lib/actions/skill-assessment.action";
 import { SkillAssessment, SkillCategory } from "@/lib/actions/skill-assessment.action";
 import { motion } from "framer-motion";
-import { FaCode, FaDatabase, FaMobile, FaServer, FaCloud, FaRobot } from "react-icons/fa";
-import { MdQuiz, MdTimer, MdStar } from "react-icons/md";
+import { FaCode, FaDatabase, FaMobile, FaServer, FaCloud, FaRobot, FaLock, FaChartLine, FaFire } from "react-icons/fa";
+import { MdQuiz, MdTimer, MdStar, MdOutlineOpenInNew } from "react-icons/md";
 
 const categoryIcons: Record<SkillCategory, React.ReactNode> = {
-  "technical": <FaCode className="w-6 h-6" />,
-  "soft-skills": <FaServer className="w-6 h-6" />,
-  "certification": <FaDatabase className="w-6 h-6" />
+  "technical": <FaCode className="w-5 h-5" />,
+  "soft-skills": <FaChartLine className="w-5 h-5" />,
+  "certification": <FaLock className="w-5 h-5" />
 };
 
 const categoryColors: Record<SkillCategory, string> = {
-  "technical": "bg-blue-500/10 text-blue-500",
-  "soft-skills": "bg-purple-500/10 text-purple-500",
-  "certification": "bg-green-500/10 text-green-500"
+  "technical": "from-blue-500 to-blue-600 text-blue-100",
+  "soft-skills": "from-purple-500 to-purple-600 text-purple-100",
+  "certification": "from-green-500 to-green-600 text-green-100"
 };
 
 const difficultyColors: Record<string, string> = {
-  "Beginner": "bg-green-500/10 text-green-500",
-  "Intermediate": "bg-yellow-500/10 text-yellow-500",
-  "Advanced": "bg-red-500/10 text-red-500"
+  "Beginner": "border-green-500/30 text-green-400",
+  "Intermediate": "border-yellow-500/30 text-yellow-400",
+  "Advanced": "border-red-500/30 text-red-400"
+};
+
+const difficultyDots: Record<string, React.ReactNode> = {
+  "Beginner": (
+    <div className="flex space-x-1">
+      <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-gray-700"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-gray-700"></div>
+    </div>
+  ),
+  "Intermediate": (
+    <div className="flex space-x-1">
+      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-gray-700"></div>
+    </div>
+  ),
+  "Advanced": (
+    <div className="flex space-x-1">
+      <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+    </div>
+  )
 };
 
 const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) => {
@@ -33,39 +57,88 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02 }}
-      className="bg-gray-800 rounded-lg p-6 cursor-pointer hover:bg-gray-700 transition-colors"
+      whileHover={{ 
+        scale: 1.02,
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
+      }}
+      transition={{ duration: 0.2 }}
+      className="relative overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 shadow-lg cursor-pointer group"
       onClick={() => router.push(`/skill-assessment/${assessment.id}`)}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${categoryColors[assessment.category]}`}>
+      {/* Decorative background elements */}
+      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-800 to-transparent rounded-bl-full opacity-50"></div>
+      <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-gray-800 to-transparent rounded-tr-full opacity-30"></div>
+      
+      {/* Top category badge */}
+      <div className="absolute top-4 left-4">
+        <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${categoryColors[assessment.category]} shadow-lg`}>
           {categoryIcons[assessment.category]}
-          <span className="text-sm font-medium">{assessment.category}</span>
-        </div>
-        <div className={`px-3 py-1 rounded-full ${difficultyColors[assessment.difficulty]}`}>
-          <span className="text-sm font-medium">{assessment.difficulty}</span>
+          <span className="text-xs font-semibold tracking-wide uppercase">{assessment.category}</span>
         </div>
       </div>
-
-      <h3 className="text-xl font-semibold text-white mb-2">{assessment.title}</h3>
-      <p className="text-gray-400 mb-4">{assessment.description}</p>
-
-      <div className="flex items-center justify-between text-sm text-gray-400">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-1">
-            <MdQuiz className="w-4 h-4" />
-            <span>{assessment.questionsCount} questions</span>
+      
+      {/* Card content */}
+      <div className="p-6 pt-16">
+        <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{assessment.title}</h3>
+        <p className="text-gray-300 text-sm mb-5 line-clamp-2">{assessment.description}</p>
+        
+        {/* Stats grid */}
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          <div className="bg-gray-800/50 rounded-lg p-2 text-center backdrop-blur-sm">
+            <div className="flex justify-center mb-1">
+              <MdQuiz className="w-5 h-5 text-blue-400" />
+            </div>
+            <div className="text-white font-medium text-sm">{assessment.questionsCount}</div>
+            <div className="text-gray-400 text-xs">Questions</div>
           </div>
-          <div className="flex items-center space-x-1">
-            <MdTimer className="w-4 h-4" />
-            <span>{assessment.duration} min</span>
+          
+          <div className="bg-gray-800/50 rounded-lg p-2 text-center backdrop-blur-sm">
+            <div className="flex justify-center mb-1">
+              <MdTimer className="w-5 h-5 text-purple-400" />
+            </div>
+            <div className="text-white font-medium text-sm">{assessment.duration}</div>
+            <div className="text-gray-400 text-xs">Minutes</div>
+          </div>
+          
+          <div className="bg-gray-800/50 rounded-lg p-2 text-center backdrop-blur-sm">
+            <div className="flex justify-center mb-1">
+              <FaFire className="w-5 h-5 text-orange-400" />
+            </div>
+            <div className="text-white font-medium text-sm">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className={i < assessment.popularity ? "text-yellow-500" : "text-gray-600"}>★</span>
+              ))}
+            </div>
+            <div className="text-gray-400 text-xs">Popularity</div>
           </div>
         </div>
-        <div className="flex items-center space-x-1">
-          <MdStar className="w-4 h-4 text-yellow-500" />
-          <span>{assessment.popularity}</span>
+        
+        {/* Bottom footer */}
+        <div className="flex items-center justify-between">
+          <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${difficultyColors[assessment.difficulty]}`}>
+            {difficultyDots[assessment.difficulty]}
+            <span className="text-xs font-medium">{assessment.difficulty}</span>
+          </div>
+          
+          <motion.div 
+            className="h-8 w-8 flex items-center justify-center rounded-full bg-blue-600 text-white opacity-0 group-hover:opacity-100"
+            whileHover={{ scale: 1.1 }}
+            initial={{ x: 10 }}
+            animate={{ x: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <MdOutlineOpenInNew className="w-4 h-4" />
+          </motion.div>
         </div>
       </div>
+      
+      {/* Bottom highlight on hover */}
+      <motion.div 
+        className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"
+        initial={{ scaleX: 0 }}
+        whileHover={{ scaleX: 1 }}
+        transition={{ duration: 0.3 }}
+      />
     </motion.div>
   );
 };
@@ -85,19 +158,21 @@ const SkillCategorySelector = ({
   ];
 
   return (
-    <div className="flex flex-wrap gap-2 mb-8">
+    <div className="flex flex-wrap gap-3 mb-10">
       {categories.map((category) => (
-        <button
+        <motion.button
           key={category}
           onClick={() => onSelectCategory(category)}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200 shadow-lg ${
             selectedCategory === category
-              ? "bg-blue-500 text-white"
-              : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+              ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-750 border border-gray-700"
           }`}
         >
           {category === "All" ? "All Categories" : category}
-        </button>
+        </motion.button>
       ))}
     </div>
   );
