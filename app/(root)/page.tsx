@@ -11,10 +11,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background grid pattern */}
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10 z-0"></div>
-        
+      <section className="relative overflow-hidden min-h-screen flex items-center">
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-950 to-black z-0"></div>
         
@@ -22,8 +19,8 @@ export default async function HomePage() {
         <div className="absolute -top-40 -right-40 h-96 w-96 bg-primary-100 opacity-20 blur-[150px] rounded-full z-0"></div>
         <div className="absolute top-1/2 left-1/3 h-80 w-80 bg-blue-700 opacity-20 blur-[150px] rounded-full z-0"></div>
         
-        <div className="container mx-auto px-4 py-24 md:py-32 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+        <div className="w-full px-6 md:px-12 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12 max-w-[2000px] mx-auto">
             <div className="lg:w-1/2 space-y-8">
               <div className="inline-block bg-gradient-to-r from-primary-100 to-blue-600 bg-clip-text">
                 <p className="uppercase tracking-wider text-transparent font-semibold">Next-level interview preparation</p>
@@ -85,10 +82,9 @@ export default async function HomePage() {
       </section>
 
       {/* Key Features Section */}
-      <section id="features" className="py-20 bg-gray-950 relative">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 z-0"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-16">
+      <section id="features" className="py-20 bg-gray-950 relative min-h-screen flex items-center">
+        <div className="w-full px-6 md:px-12 relative z-10">
+          <div className="text-center mb-16 max-w-[2000px] mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Your Complete Interview Preparation Platform</h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Our comprehensive platform offers everything you need to prepare for your next job interview and advance your career
@@ -131,10 +127,10 @@ export default async function HomePage() {
       </section>
 
       {/* AI Interview Experience Section */}
-      <section className="py-20 bg-black relative overflow-hidden">
+      <section className="py-20 bg-black relative overflow-hidden min-h-screen flex items-center">
         <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-primary-100/10 blur-[100px] rounded-full"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="w-full px-6 md:px-12 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-[2000px] mx-auto">
             <div className="order-2 lg:order-1">
               <div className="relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-30"></div>
@@ -201,10 +197,9 @@ export default async function HomePage() {
       </section>
 
       {/* Skill Assessment Section */}
-      <section className="py-20 bg-gray-950 relative">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 z-0"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="py-20 bg-gray-950 relative min-h-screen flex items-center">
+        <div className="w-full px-6 md:px-12 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-[2000px] mx-auto">
             <div>
               <div className="inline-block bg-gradient-to-r from-primary-100 to-blue-600 bg-clip-text mb-4">
                 <p className="uppercase tracking-wider text-transparent font-semibold">Proctored Skill Assessments</p>
@@ -262,10 +257,10 @@ export default async function HomePage() {
       </section>
 
       {/* Resume Builder Section */}
-      <section className="py-20 bg-black relative overflow-hidden">
+      <section className="py-20 bg-black relative overflow-hidden min-h-screen flex items-center">
         <div className="absolute top-0 left-0 w-1/3 h-1/3 bg-blue-600/10 blur-[100px] rounded-full"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="w-full px-6 md:px-12 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-[2000px] mx-auto">
             <div className="order-2 lg:order-1">
               <div className="relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-30"></div>
@@ -337,11 +332,10 @@ export default async function HomePage() {
       </section>
 
       {/* Career Interview Experiences Section */}
-      <section className="py-20 bg-gray-950 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 z-0"></div>
+      <section className="py-20 bg-gray-950 relative overflow-hidden min-h-screen flex items-center">
         <div className="absolute top-40 left-20 w-72 h-72 bg-blue-600/20 blur-[120px] rounded-full"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="w-full px-6 md:px-12 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-[2000px] mx-auto">
             <div>
               <div className="inline-block bg-gradient-to-r from-primary-100 to-blue-600 bg-clip-text mb-4">
                 <p className="uppercase tracking-wider text-transparent font-semibold">Career Insider</p>
@@ -415,11 +409,11 @@ export default async function HomePage() {
      
 
       {/* Enterprise Partners Section */}
-      <section className="py-16 bg-black relative overflow-hidden">
+      <section className="py-16 bg-black relative overflow-hidden min-h-screen flex items-center">
         <div className="absolute top-0 right-0 w-1/4 h-1/4 bg-primary-100/5 blur-[100px] rounded-full"></div>
         <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-blue-600/5 blur-[100px] rounded-full"></div>
         
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="w-full px-6 md:px-12 relative z-10">
           <div className="max-w-4xl mx-auto bg-gradient-to-br from-gray-900/90 to-gray-950/90 backdrop-blur-lg border border-gray-800/50 rounded-2xl p-8 shadow-xl">
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="w-full md:w-3/4">
@@ -484,12 +478,11 @@ export default async function HomePage() {
 
       {/* Footer */}
       <footer className="bg-gray-950 border-t border-gray-800/50 pt-16 pb-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 z-0"></div>
         <div className="absolute top-0 left-1/4 w-1/3 h-1/3 bg-blue-600/5 blur-[150px] rounded-full"></div>
         <div className="absolute bottom-0 right-1/4 w-1/3 h-1/3 bg-primary-100/5 blur-[150px] rounded-full"></div>
         
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+        <div className="w-full px-6 md:px-12 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12 max-w-[2000px] mx-auto">
             {/* Logo & Description */}
             <div className="col-span-1 md:col-span-1">
               <Link href="/" className="flex items-center gap-3 group mb-4">
