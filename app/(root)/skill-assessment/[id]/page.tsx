@@ -11,7 +11,7 @@ import EyeTrackingProctor from "@/components/skill-assessment/EyeTrackingProctor
 import ProctorConsentModal from "@/components/skill-assessment/ProctorConsentModal";
 import DisqualificationScreen from "@/components/skill-assessment/DisqualificationScreen";
 import { useSession } from "next-auth/react";
-import { generateStudyRecommendations } from "@/lib/actions/assessment-ai.action";
+import { generateStudyRecommendationsAgent } from "@/lib/actions/assessment-ai.action";
 import { Session } from "next-auth";
 
 // Assessment status types
@@ -594,10 +594,10 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
           }
         );
         
-        // Generate study recommendations
+        // Generate study recommendations using the agent
         setLoadingRecommendations(true);
         
-        const recommendationsResult = await generateStudyRecommendations({
+        const recommendationsResult = await generateStudyRecommendationsAgent({
           assessmentTitle: assessment.title,
           assessmentCategory: assessment.category,
           questions,

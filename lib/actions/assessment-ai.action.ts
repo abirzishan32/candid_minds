@@ -42,6 +42,42 @@ export interface GenerateAssessmentQuestionsParams {
   currentQuestions?: string[];
 }
 
+// Define tools for the study recommendations agent
+interface AnalyzeMissedQuestionsArgs {
+  questions: {
+    question: string;
+    timeTaken: number;
+    isCorrect: boolean;
+  }[];
+  category: string;
+}
+
+interface GenerateLearningResourcesArgs {
+  topic: string;
+  difficulty: string;
+  category: string;
+}
+
+// New schemas for agent tools
+const topicAnalysisSchema = z.object({
+  topics: z.array(z.object({
+    name: z.string(),
+    relevance: z.number().min(1).max(10),
+    subtopics: z.array(z.string()),
+    difficulty: z.enum(["beginner", "intermediate", "advanced"])
+  })).min(1).max(5)
+});
+
+const resourceRecommendationsSchema = z.object({
+  resources: z.array(z.object({
+    title: z.string(),
+    type: z.enum(["article", "video", "course", "documentation", "practice", "other"]),
+    url: z.string().optional(),
+    description: z.string(),
+    estimatedTimeInMinutes: z.number().optional()
+  })).min(1).max(5)
+});
+
 /**
  * Generate assessment questions using AI
  */
@@ -178,9 +214,113 @@ export async function generateAssessmentQuestionsWithAI(params: GenerateAssessme
 }
 
 /**
- * Generate study recommendations based on user's assessment performance
+ * Analyzes missed questions to identify knowledge gaps
  */
-export async function generateStudyRecommendations(params: {
+async function analyzeMissedQuestions(args: AnalyzeMissedQuestionsArgs) {
+  try {
+    const { questions, category } = args;
+    
+    // Filter out correct answers
+    const incorrectQuestions = questions.filter(q => !q.isCorrect);
+    
+    if (incorrectQuestions.length === 0) {
+      return JSON.stringify({
+        topics: [{
+          name: "General Review",
+          relevance: 10,
+          subtopics: ["Comprehensive review"],
+          difficulty: "beginner"
+        }]
+      });
+    }
+    
+    // Generate structured response using Gemini
+    const { object } = await generateObject({
+      model: google("gemini-2.0-flash-001", {
+        structuredOutputs: true,
+      }),
+      schema: topicAnalysisSchema,
+      prompt: `
+        Analyze these incorrect questions from a ${category} assessment:
+        ${incorrectQuestions.map((q, i) => `
+          Question ${i+1}: "${q.question}"
+          Time taken: ${Math.floor(q.timeTaken / 60)}m ${q.timeTaken % 60}s
+        `).join('\n')}
+        
+        Based on these questions:
+        1. Identify 2-3 specific knowledge gap topics
+        2. Rate each topic's relevance on a scale of 1-10
+        3. List 2-3 subtopics for each main topic
+        4. Assess the difficulty level needed for study resources
+      `,
+      system: "You are an expert educational analyst who excels at identifying knowledge gaps from assessment results."
+    });
+    
+    return JSON.stringify(object);
+  } catch (error) {
+    console.error("Error in analyzeMissedQuestions:", error);
+    return JSON.stringify({ 
+      error: "Failed to analyze questions", 
+      topics: [{ 
+        name: "General Knowledge Gaps", 
+        relevance: 8, 
+        subtopics: ["Review core concepts"], 
+        difficulty: "intermediate" 
+      }] 
+    });
+  }
+}
+
+/**
+ * Generates specific learning resources for identified topics
+ */
+async function generateLearningResources(args: GenerateLearningResourcesArgs) {
+  try {
+    const { topic, difficulty, category } = args;
+    
+    const { object } = await generateObject({
+      model: google("gemini-2.0-flash-001", {
+        structuredOutputs: true,
+      }),
+      schema: resourceRecommendationsSchema,
+      prompt: `
+        Recommend specific learning resources for studying "${topic}" in the field of ${category}.
+        The learner needs ${difficulty} level materials.
+        
+        For each resource:
+        1. Provide a specific, actionable title
+        2. Classify the resource type (article, video, etc.)
+        3. Give a brief description of what they'll learn
+        4. Estimate how long it will take to complete (in minutes)
+      `,
+      system: "You are an expert educational resource curator who provides highly relevant, practical learning materials."
+    });
+    
+    return JSON.stringify(object);
+  } catch (error) {
+    console.error("Error in generateLearningResources:", error);
+    return JSON.stringify({ 
+      error: "Failed to generate resources",
+      resources: [{ 
+        title: `${args.topic} fundamentals`,
+        type: "course",
+        description: "A comprehensive overview of the core concepts",
+        estimatedTimeInMinutes: 60
+      }]
+    });
+  }
+}
+
+const availableFunctions: Record<string, Function> = {
+  analyzeMissedQuestions,
+  generateLearningResources
+};
+
+/**
+ * Agent-based study recommendations system that mimics a simplified version
+ * to work around the existing limits of the Google AI JS SDK
+ */
+export async function generateStudyRecommendationsAgent(params: {
   assessmentTitle: string;
   assessmentCategory: SkillCategory;
   questions: AssessmentQuestion[];
@@ -189,9 +329,9 @@ export async function generateStudyRecommendations(params: {
   try {
     const { assessmentTitle, assessmentCategory, questions, userAttempts } = params;
     
-    // Filter out questions that the user struggled with (incorrect or took a long time)
+    // Prepare the data for the agent
     const struggledQuestions = userAttempts
-      .filter(attempt => !attempt.isCorrect || attempt.timeSpentInSeconds > 60) // More than 1 minute
+      .filter(attempt => !attempt.isCorrect || attempt.timeSpentInSeconds > 60)
       .map(attempt => {
         const question = questions.find(q => q.id === attempt.questionId);
         return {
@@ -200,7 +340,7 @@ export async function generateStudyRecommendations(params: {
           isCorrect: attempt.isCorrect
         };
       })
-      .filter(q => q.question !== ""); // Remove any questions we couldn't find
+      .filter(q => q.question !== "");
     
     if (struggledQuestions.length === 0) {
       return {
@@ -221,50 +361,97 @@ export async function generateStudyRecommendations(params: {
       };
     }
 
-    // Build the prompt for generating recommendations
-    const prompt = `
-      Based on a user's performance in a "${assessmentTitle}" assessment in the category "${assessmentCategory}", 
-      I need you to recommend specific study topics and resources.
-      
-      The user struggled with the following questions:
-      ${struggledQuestions.map((q, i) => `
-        Question ${i+1}: "${q.question}"
-        Time taken: ${Math.floor(q.timeTaken / 60)}m ${q.timeTaken % 60}s
-        Correct: ${q.isCorrect ? "Yes" : "No"}
-      `).join('\n')}
-      
-      Based on these questions, identify 2-3 specific topics within ${assessmentCategory} that the user should study more.
-      For each topic, provide:
-      1. A clear topic name
-      2. Why this topic is relevant based on their performance
-      3. 1-3 specific learning resources (articles, videos, courses, or practice exercises)
-    `;
-
-    // Use Gemini model to generate structured recommendations
+    // First, analyze the missed questions to identify knowledge gaps
+    console.log("Analyzing missed questions...");
+    const analyzeResult = await analyzeMissedQuestions({
+      questions: struggledQuestions,
+      category: assessmentCategory
+    });
+    
+    let topicsData;
     try {
-      const { object } = await generateObject({
-        model: google("gemini-2.0-flash-001", {
-          structuredOutputs: true,
-        }),
-        schema: studyRecommendationsSchema,
-        prompt: prompt,
-        system: "You are an expert educational advisor specializing in personalized learning recommendations. Provide focused, actionable study recommendations based on assessment performance."
-      });
-
-      return {
-        success: true,
-        data: object
-      };
-    } catch (aiError) {
-      console.error("AI recommendation generation error:", aiError);
-      return {
-        success: false,
-        message: "Failed to generate study recommendations",
-        data: null
+      topicsData = JSON.parse(analyzeResult);
+    } catch (e) {
+      console.error("Error parsing analysis result:", e);
+      topicsData = { 
+        topics: [{ 
+          name: "General Knowledge Gaps", 
+          relevance: 8, 
+          subtopics: ["Review core concepts"], 
+          difficulty: "intermediate" 
+        }] 
       };
     }
+    
+    // For each identified topic, find learning resources
+    const enhancedTopics = [];
+    
+    for (const topic of topicsData.topics) {
+      console.log(`Finding resources for topic: ${topic.name}`);
+      
+      try {
+        const resourcesResult = await generateLearningResources({
+          topic: topic.name,
+          difficulty: topic.difficulty,
+          category: assessmentCategory
+        });
+        
+        let resourcesData;
+        try {
+          resourcesData = JSON.parse(resourcesResult);
+        } catch (e) {
+          console.error(`Error parsing resources for ${topic.name}:`, e);
+          resourcesData = { 
+            resources: [{ 
+              title: `${topic.name} fundamentals`, 
+              type: "course",
+              description: "A comprehensive overview of the topic"
+            }] 
+          };
+        }
+        
+        enhancedTopics.push({
+          topic: topic.name,
+          description: `${topic.name} is highly relevant to your assessment results (relevance score: ${topic.relevance}/10). Focus on these subtopics: ${topic.subtopics.join(", ")}.`,
+          relevance: `Relevance score: ${topic.relevance}/10`,
+          resources: resourcesData.resources.map((res: any) => ({
+            title: res.title,
+            type: res.type || "article",
+            description: res.description || ""
+          }))
+        });
+      } catch (err) {
+        console.error(`Error generating resources for ${topic.name}:`, err);
+        
+        // Add a basic topic even if resource generation failed
+        enhancedTopics.push({
+          topic: topic.name,
+          description: `Focus on these subtopics: ${topic.subtopics.join(", ")}.`,
+          relevance: `Relevance score: ${topic.relevance}/10`,
+          resources: [{ 
+            title: `Study ${topic.name} fundamentals`,
+            type: "course"
+          }]
+        });
+      }
+    }
+    
+    return {
+      success: true,
+      data: { 
+        topics: enhancedTopics.length > 0 ? enhancedTopics : [{
+          topic: "Assessment Review",
+          description: "Review the concepts covered in your assessment questions.",
+          relevance: "Based on assessment performance",
+          resources: [{ 
+            title: "General study resources for " + assessmentCategory,
+            type: "article"
+          }]
+        }] 
+      }
+    };
   } catch (error) {
-    console.error("Error in generateStudyRecommendations:", error);
+    console.error("Error in generateStudyRecommendationsAgent:", error);
     return {
       success: false,
       message: "An error occurred while generating study recommendations",
