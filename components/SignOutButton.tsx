@@ -1,33 +1,46 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signOut } from '@/lib/actions/auth.action';
+import { LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
-export default function SignOutButton() {
+const SignOutButton = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
-      await signOut();
-      router.refresh(); // Refresh the page to update auth state
-      router.push('/'); // Redirect to home after logout
+      await signOut({ callbackUrl: '/' });
     } catch (error) {
-      console.error('Failed to sign out:', error);
+      console.error('Sign out error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-      <button
-          onClick={handleSignOut}
-          disabled={isLoading}
-          className="text-sm text-gray-300 hover:text-primary-100 transition-colors duration-200"
-      >
-        {isLoading ? 'Signing out...' : '(Logout)'}
-      </button>
+    <button
+      onClick={handleSignOut}
+      disabled={isLoading}
+      className="relative group"
+      aria-label="Sign out"
+    >
+      <div className="p-2 rounded-full transition-all duration-300 hover:bg-gray-800 relative overflow-hidden">
+        <LogOut className="h-4 w-4 text-gray-400 group-hover:text-white transition-colors" />
+        
+        {/* Futuristic hover effect */}
+        <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span className="absolute top-0 left-1/2 w-px h-0 bg-gradient-to-b from-primary-100/0 via-primary-100/80 to-primary-100/0 group-hover:h-full transition-all duration-500"></span>
+          <span className="absolute bottom-0 left-1/2 w-px h-0 bg-gradient-to-t from-primary-100/0 via-primary-100/80 to-primary-100/0 group-hover:h-full transition-all duration-500 delay-100"></span>
+        </span>
+      </div>
+      
+      {/* Loading indicator */}
+      {isLoading && (
+        <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+      )}
+    </button>
   );
-}
+};
+
+export default SignOutButton;

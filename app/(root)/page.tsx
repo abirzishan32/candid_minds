@@ -75,7 +75,7 @@ export default async function HomePage() {
                   alt="AI Interview Simulation" 
                   width={600} 
                   height={400}
-                  className="w-full rounded-lg shadow-lg object-cover transition transform hover:scale-105 duration-700"
+                  className="w-full rounded-lg shadow-lg object-cover"
                 />
                 
               </div>
@@ -146,13 +146,6 @@ export default async function HomePage() {
                     height={400}
                     className="w-full"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-br from-black/40 to-transparent flex items-center justify-center">
-                    <div className="h-16 w-16 rounded-full bg-primary-100 text-black flex items-center justify-center">
-                      <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -365,46 +358,17 @@ export default async function HomePage() {
               </Link>
             </div>
             
-        <div>
+            <div>
               <div className="relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-20"></div>
-                <div className="relative bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-                  <div className="p-6 border-b border-gray-800 flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Resume Builder</h3>
-                    <div className="flex gap-2">
-                      <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                      <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                      <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                    </div>
-                  </div>
-                  <div className="p-6 bg-gray-950">
-                    <div className="mb-6">
-                      <div className="h-8 w-48 bg-gray-800 rounded mb-4"></div>
-                      <div className="h-4 w-full bg-gray-800 rounded mb-2"></div>
-                      <div className="h-4 w-5/6 bg-gray-800 rounded"></div>
-                    </div>
-                    <div className="mb-6">
-                      <div className="h-6 w-36 bg-gray-800 rounded mb-3"></div>
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div className="h-16 w-full bg-gray-800 rounded"></div>
-                        <div className="h-16 w-full bg-gray-800 rounded"></div>
-                      </div>
-                      <div className="h-4 w-full bg-gray-800 rounded mb-2"></div>
-                      <div className="h-4 w-5/6 bg-gray-800 rounded"></div>
-                    </div>
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="h-6 w-36 bg-gray-800 rounded"></div>
-                        <div className="text-xs px-2 py-1 bg-primary-100 text-black rounded">ATS Optimized</div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="h-4 w-full bg-gray-800 rounded"></div>
-                        <div className="h-4 w-5/6 bg-gray-800 rounded"></div>
-                        <div className="h-4 w-full bg-gray-800 rounded"></div>
-                      </div>
-                    </div>
-                    <div className="h-4 w-32 bg-primary-100 rounded"></div>
-                  </div>
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-30"></div>
+                <div className="relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
+                  <Image 
+                    src="/resume.jpg"
+                    alt="Resume Builder Preview"
+                    width={600}
+                    height={400}
+                    className="w-full rounded-lg shadow-lg object-cover"
+                  />
                 </div>
               </div>
             </div>
@@ -412,7 +376,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Community and Career Section */}
      
 
       {/* Career Interview Experiences Section */}

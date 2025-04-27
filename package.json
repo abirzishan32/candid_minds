@@ -47,7 +47,7 @@
     "face-api.js": "^0.22.2",
     "firebase": "^11.6.0",
     "firebase-admin": "^13.2.0",
-    "framer-motion": "^12.6.3",
+    "framer-motion": "^12.9.2",
     "gsap": "^3.12.7",
     "heatmap.js": "^2.0.5",
     "html2canvas": "^1.4.1",
