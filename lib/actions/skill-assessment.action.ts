@@ -80,6 +80,28 @@ export interface CodingProblem {
   updatedAt: any;
 }
 
+// User assessment tracking interfaces
+export interface UserQuestionAttempt {
+  questionId: string;
+  timeSpentInSeconds: number;
+  selectedOptions: string[];
+  isCorrect: boolean;
+}
+
+export interface UserAssessmentResult {
+  id: string;
+  userId: string;
+  assessmentId: string;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  isPassing: boolean;
+  timeSpentInSeconds: number;
+  questionAttempts: UserQuestionAttempt[];
+  studyRecommendations?: string[];
+  createdAt: any; // Firestore timestamp
+}
+
 // Helper function to serialize Firestore data
 const serializeFirestoreData = (data: any) => {
   if (!data) return null;
@@ -563,5 +585,111 @@ export async function deleteAssessmentQuestion(questionId: string, assessmentId:
   } catch (error) {
     console.error("Error deleting assessment question:", error);
     return { success: false, message: "Failed to delete assessment question" };
+  }
+}
+
+/**
+ * Save user assessment results with timing data for analytics
+ */
+export async function saveUserAssessmentResults(userId: string, assessmentId: string, results: {
+  score: number;
+  maxScore: number;
+  percentage: number;
+  isPassing: boolean;
+  timeSpentInSeconds: number;
+  questionAttempts: UserQuestionAttempt[];
+}) {
+  try {
+    const resultId = uuidv4();
+    const now = FieldValue.serverTimestamp();
+    
+    // Create the assessment result document
+    const userAssessmentResult: UserAssessmentResult = {
+      id: resultId,
+      userId,
+      assessmentId,
+      ...results,
+      createdAt: now,
+    };
+    
+    // Save to the userAssessmentResults collection
+    await db.collection("userAssessmentResults").doc(resultId).set(userAssessmentResult);
+    
+    // Update the assessment document with completion stats
+    const assessmentRef = db.collection("skillAssessments").doc(assessmentId);
+    await assessmentRef.update({
+      completions: FieldValue.increment(1),
+      // Update average score (we'll need to get current average and recalculate)
+      // This is a simplistic approach - a more accurate method might use a cloud function
+      // to calculate the true average
+      averageScore: results.percentage,
+      updatedAt: now
+    });
+    
+    return { 
+      success: true, 
+      data: { 
+        ...userAssessmentResult, 
+        createdAt: new Date().toISOString() 
+      } 
+    };
+  } catch (error) {
+    console.error("Error saving assessment results:", error);
+    return { success: false, message: "Failed to save assessment results" };
+  }
+}
+
+/**
+ * Get the most recent assessment result for a user
+ */
+export async function getUserLatestAssessmentResult(userId: string) {
+  try {
+    const resultsSnapshot = await db.collection("userAssessmentResults")
+      .where("userId", "==", userId)
+      .orderBy("createdAt", "desc")
+      .limit(1)
+      .get();
+    
+    if (resultsSnapshot.empty) {
+      return { success: true, data: null };
+    }
+    
+    const resultDoc = resultsSnapshot.docs[0];
+    const resultData = resultDoc.data() || {};
+    
+    const result = {
+      id: resultDoc.id,
+      ...serializeFirestoreData(resultData)
+    } as UserAssessmentResult;
+    
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Error fetching user assessment result:", error);
+    return { success: false, message: "Failed to fetch assessment result" };
+  }
+}
+
+/**
+ * Get all assessment results for admin analytics
+ */
+export async function getAllAssessmentResults(assessmentId: string) {
+  try {
+    const resultsSnapshot = await db.collection("userAssessmentResults")
+      .where("assessmentId", "==", assessmentId)
+      .orderBy("createdAt", "desc")
+      .get();
+    
+    const results = resultsSnapshot.docs.map(doc => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        ...serializeFirestoreData(data)
+      };
+    }) as UserAssessmentResult[];
+    
+    return { success: true, data: results };
+  } catch (error) {
+    console.error("Error fetching assessment results:", error);
+    return { success: false, message: "Failed to fetch assessment results" };
   }
 }

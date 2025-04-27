@@ -4,7 +4,7 @@ import { isAdmin } from "./auth.action";
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
-import { AssessmentOption, DifficultyLevel, QuestionType, SkillCategory } from "./skill-assessment.action";
+import { AssessmentOption, AssessmentQuestion, DifficultyLevel, QuestionType, SkillAssessment, SkillCategory, UserQuestionAttempt } from "./skill-assessment.action";
 
 // Define schema for multiple-choice question generation
 const multipleChoiceQuestionSchema = z.object({
@@ -15,6 +15,20 @@ const multipleChoiceQuestionSchema = z.object({
       isCorrect: z.boolean()
     })).min(2).max(5)
   })).min(1).max(20)
+});
+
+// Define schema for study recommendations
+const studyRecommendationsSchema = z.object({
+  topics: z.array(z.object({
+    topic: z.string(),
+    description: z.string(),
+    relevance: z.string(),
+    resources: z.array(z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      type: z.enum(["article", "video", "course", "documentation", "practice", "other"]).optional(),
+    })).min(1).max(3)
+  })).min(1).max(5)
 });
 
 // Define parameters for question generation
@@ -80,6 +94,7 @@ export async function generateAssessmentQuestionsWithAI(params: GenerateAssessme
     if (description) {
       prompt += `\n\nAssessment description: ${description}`;
     }
+
 
     // Add specifics based on question type
     if (questionType === "multiple-choice") {
@@ -158,6 +173,102 @@ export async function generateAssessmentQuestionsWithAI(params: GenerateAssessme
       success: false,
       message: "An error occurred while generating questions",
       data: []
+    };
+  }
+}
+
+/**
+ * Generate study recommendations based on user's assessment performance
+ */
+export async function generateStudyRecommendations(params: {
+  assessmentTitle: string;
+  assessmentCategory: SkillCategory;
+  questions: AssessmentQuestion[];
+  userAttempts: UserQuestionAttempt[];
+}) {
+  try {
+    const { assessmentTitle, assessmentCategory, questions, userAttempts } = params;
+    
+    // Filter out questions that the user struggled with (incorrect or took a long time)
+    const struggledQuestions = userAttempts
+      .filter(attempt => !attempt.isCorrect || attempt.timeSpentInSeconds > 60) // More than 1 minute
+      .map(attempt => {
+        const question = questions.find(q => q.id === attempt.questionId);
+        return {
+          question: question?.question || "",
+          timeTaken: attempt.timeSpentInSeconds,
+          isCorrect: attempt.isCorrect
+        };
+      })
+      .filter(q => q.question !== ""); // Remove any questions we couldn't find
+    
+    if (struggledQuestions.length === 0) {
+      return {
+        success: true,
+        data: {
+          topics: [{
+            topic: "General Review",
+            description: "You did great on the assessment! Here are some general resources to further improve your skills.",
+            relevance: "General review to reinforce your knowledge",
+            resources: [
+              {
+                title: "Continue practicing with more advanced exercises",
+                type: "practice"
+              }
+            ]
+          }]
+        }
+      };
+    }
+
+    // Build the prompt for generating recommendations
+    const prompt = `
+      Based on a user's performance in a "${assessmentTitle}" assessment in the category "${assessmentCategory}", 
+      I need you to recommend specific study topics and resources.
+      
+      The user struggled with the following questions:
+      ${struggledQuestions.map((q, i) => `
+        Question ${i+1}: "${q.question}"
+        Time taken: ${Math.floor(q.timeTaken / 60)}m ${q.timeTaken % 60}s
+        Correct: ${q.isCorrect ? "Yes" : "No"}
+      `).join('\n')}
+      
+      Based on these questions, identify 2-3 specific topics within ${assessmentCategory} that the user should study more.
+      For each topic, provide:
+      1. A clear topic name
+      2. Why this topic is relevant based on their performance
+      3. 1-3 specific learning resources (articles, videos, courses, or practice exercises)
+    `;
+
+    // Use Gemini model to generate structured recommendations
+    try {
+      const { object } = await generateObject({
+        model: google("gemini-2.0-flash-001", {
+          structuredOutputs: true,
+        }),
+        schema: studyRecommendationsSchema,
+        prompt: prompt,
+        system: "You are an expert educational advisor specializing in personalized learning recommendations. Provide focused, actionable study recommendations based on assessment performance."
+      });
+
+      return {
+        success: true,
+        data: object
+      };
+    } catch (aiError) {
+      console.error("AI recommendation generation error:", aiError);
+      return {
+        success: false,
+        message: "Failed to generate study recommendations",
+        data: null
+      };
+    }
+  } catch (error) {
+    console.error("Error in generateStudyRecommendations:", error);
+    return {
+      success: false,
+      message: "An error occurred while generating study recommendations",
+      data: null
     };
   }
 } 

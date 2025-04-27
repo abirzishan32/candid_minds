@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaClock, FaCheck, FaTimes, FaArrowLeft, FaArrowRight, FaVideo, FaEye, FaInfoCircle } from "react-icons/fa";
 import { toast } from "sonner";
-import { getSkillAssessmentById } from "@/lib/actions/skill-assessment.action";
+import { getSkillAssessmentById, saveUserAssessmentResults, UserQuestionAttempt } from "@/lib/actions/skill-assessment.action";
 import { SkillAssessment, AssessmentQuestion } from "@/lib/actions/skill-assessment.action";
 import EyeTrackingProctor from "@/components/skill-assessment/EyeTrackingProctor";
 import ProctorConsentModal from "@/components/skill-assessment/ProctorConsentModal";
 import DisqualificationScreen from "@/components/skill-assessment/DisqualificationScreen";
+import { useSession } from "next-auth/react";
+import { generateStudyRecommendations } from "@/lib/actions/assessment-ai.action";
+import { Session } from "next-auth";
 
 // Assessment status types
 type AssessmentStatus = "intro" | "in-progress" | "results" | "disqualified";
@@ -38,6 +41,7 @@ type AssessmentResult = {
 
 export default function AssessmentPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [assessment, setAssessment] = useState<SkillAssessment | null>(null);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -47,6 +51,12 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Analytics tracking
+  const [questionStartTimes, setQuestionStartTimes] = useState<{[key: string]: number}>({});
+  const [questionTimings, setQuestionTimings] = useState<{[key: string]: number}>({});
+  const [studyRecommendations, setStudyRecommendations] = useState<any>(null);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   
   // Anti-cheating states
   const [showConsentModal, setShowConsentModal] = useState(false);
@@ -338,6 +348,16 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
     setUserAnswers([]);
     startTimeRef.current = null; // Reset start time
     setProctorActive(true); // Enable proctoring
+    
+    // Initialize question start time for the first question
+    const currentTime = Date.now();
+    const firstQuestion = questions[0];
+    if (firstQuestion) {
+      setQuestionStartTimes(prev => ({
+        ...prev,
+        [firstQuestion.id]: currentTime
+      }));
+    }
   };
 
   // Handle webcam consent
@@ -360,7 +380,7 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
     setShowProctorVideo(prev => !prev);
   };
 
-  // Handle answer submission
+  // Handle answer submission with timing data
   const handleAnswerSubmit = (answer: UserAnswer) => {
     // Save the answer
     setUserAnswers(prev => {
@@ -376,23 +396,82 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
       return updatedAnswers;
     });
     
+    // Record the time spent on this question
+    const currentTime = Date.now();
+    const startTime = questionStartTimes[answer.questionId] || currentTime;
+    const timeSpent = Math.floor((currentTime - startTime) / 1000); // Convert to seconds
+    
+    setQuestionTimings(prev => ({
+      ...prev,
+      [answer.questionId]: timeSpent
+    }));
+    
     // Move to next question if not the last one
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
+      
+      // Set start time for the next question
+      const nextQuestion = questions[nextIndex];
+      if (nextQuestion) {
+        setQuestionStartTimes(prev => ({
+          ...prev,
+          [nextQuestion.id]: Date.now()
+        }));
+      }
     }
   };
 
-  // Handle navigating to previous question
+  // Navigate between questions with timing
   const goToPreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      // Save timing for current question before moving
+      const currentQuestion = questions[currentQuestionIndex];
+      const currentTime = Date.now();
+      const startTime = questionStartTimes[currentQuestion.id] || currentTime;
+      const timeSpent = Math.floor((currentTime - startTime) / 1000);
+      
+      setQuestionTimings(prev => ({
+        ...prev,
+        [currentQuestion.id]: timeSpent
+      }));
+      
+      // Move to previous question
+      const prevIndex = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(prevIndex);
+      
+      // Reset start time for the previous question
+      const prevQuestion = questions[prevIndex];
+      setQuestionStartTimes(prev => ({
+        ...prev,
+        [prevQuestion.id]: Date.now()
+      }));
     }
   };
-  
-  // Handle navigating to next question
+
   const goToNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      // Save timing for current question before moving
+      const currentQuestion = questions[currentQuestionIndex];
+      const currentTime = Date.now();
+      const startTime = questionStartTimes[currentQuestion.id] || currentTime;
+      const timeSpent = Math.floor((currentTime - startTime) / 1000);
+      
+      setQuestionTimings(prev => ({
+        ...prev,
+        [currentQuestion.id]: timeSpent
+      }));
+      
+      // Move to next question
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
+      
+      // Reset start time for the next question
+      const nextQuestion = questions[nextIndex];
+      setQuestionStartTimes(prev => ({
+        ...prev,
+        [nextQuestion.id]: Date.now()
+      }));
     }
   };
 
@@ -401,13 +480,25 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
     calculateAndShowResults();
   };
 
-  // Calculate and show the results
-  const calculateAndShowResults = () => {
+  // Calculate and show the results with timing data
+  const calculateAndShowResults = async () => {
     if (!assessment || questions.length === 0) return;
+    
+    // Record time for the last question
+    const lastQuestion = questions[currentQuestionIndex];
+    const currentTime = Date.now();
+    const startTime = questionStartTimes[lastQuestion.id] || currentTime;
+    const timeSpent = Math.floor((currentTime - startTime) / 1000);
+    
+    setQuestionTimings(prev => ({
+      ...prev,
+      [lastQuestion.id]: timeSpent
+    }));
     
     let totalPoints = 0;
     let earnedPoints = 0;
     const answersByQuestion = [];
+    const questionAttempts: UserQuestionAttempt[] = [];
     
     for (const question of questions) {
       totalPoints += question.points;
@@ -450,18 +541,80 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
         question: question.question,
         userAnswer: userAnswer || { questionId: question.id, selectedOptions: [] }
       });
+      
+      // Add timing data to question attempts
+      questionAttempts.push({
+        questionId: question.id,
+        timeSpentInSeconds: questionTimings[question.id] || 0,
+        selectedOptions: userAnswer?.selectedOptions || [],
+        isCorrect
+      });
     }
     
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
     const isPassing = percentage >= (assessment.passPercentage || 70);
     
-    setResult({
+    const resultData = {
       score: earnedPoints,
       maxScore: totalPoints,
       percentage,
       isPassing,
       answersByQuestion
-    });
+    };
+    
+    setResult(resultData);
+    
+    // Calculate total time spent
+    const totalTimeSpent = Object.values(questionTimings).reduce((total, time) => total + time, 0);
+    
+    // Save assessment results to database if user is logged in
+    if (session?.user) {
+      try {
+        // Get user ID safely - try different approaches to handle various session structures
+        let userId = 'anonymous';
+        
+        if ((session.user as any).id) {
+          userId = (session.user as any).id;
+        } else if ((session as any).id) {
+          userId = (session as any).id;
+        } else if ((session as any).userId) {
+          userId = (session as any).userId;
+        }
+        
+        const savedResult = await saveUserAssessmentResults(
+          userId,
+          assessment.id,
+          {
+            score: earnedPoints,
+            maxScore: totalPoints,
+            percentage,
+            isPassing,
+            timeSpentInSeconds: totalTimeSpent,
+            questionAttempts
+          }
+        );
+        
+        // Generate study recommendations
+        setLoadingRecommendations(true);
+        
+        const recommendationsResult = await generateStudyRecommendations({
+          assessmentTitle: assessment.title,
+          assessmentCategory: assessment.category,
+          questions,
+          userAttempts: questionAttempts
+        });
+        
+        if (recommendationsResult.success && recommendationsResult.data) {
+          setStudyRecommendations(recommendationsResult.data);
+        }
+        
+        setLoadingRecommendations(false);
+      } catch (err) {
+        console.error("Error saving assessment results:", err);
+        // Continue without saving results
+        setLoadingRecommendations(false);
+      }
+    }
     
     // Clean up timer
     if (timerRef.current) clearInterval(timerRef.current);
@@ -479,6 +632,245 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
 
   // Current question
   const currentQuestion = questions[currentQuestionIndex];
+
+  // Render study recommendations
+  const renderStudyRecommendations = () => {
+    if (loadingRecommendations) {
+      return (
+        <div className="mt-8 p-6 bg-gray-800 rounded-lg animate-pulse">
+          <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-gray-700 rounded w-2/3 mb-2"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+        </div>
+      );
+    }
+    
+    // If we have recommendations from AI, show them
+    if (studyRecommendations && studyRecommendations.topics && studyRecommendations.topics.length > 0) {
+      return (
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold text-white mb-4">Study Recommendations</h3>
+          <div className="space-y-6">
+            {studyRecommendations.topics.map((topic: any, index: number) => (
+              <div key={index} className="p-6 bg-gray-800 rounded-lg">
+                <h4 className="text-lg font-medium text-blue-400 mb-2">{topic.topic}</h4>
+                <p className="text-gray-300 mb-4">{topic.description}</p>
+                <h5 className="text-sm font-medium text-gray-400 mb-2">Recommended Resources:</h5>
+                <ul className="space-y-2">
+                  {topic.resources.map((resource: any, resIndex: number) => (
+                    <li key={resIndex} className="flex items-start">
+                      <span className="text-blue-500 mr-2">•</span>
+                      <div>
+                        <p className="text-white font-medium">{resource.title}</p>
+                        {resource.description && (
+                          <p className="text-gray-400 text-sm">{resource.description}</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    
+    // Fallback: If no recommendations from AI, create a generic one based on incorrect questions
+    const incorrectQuestions = result?.answersByQuestion.filter(q => !q.correct) || [];
+    
+    if (incorrectQuestions.length > 0) {
+      // Group questions by common keywords to simulate topic grouping
+      const keywords = extractKeywords(incorrectQuestions.map(q => q.question));
+      
+      // Get the assessment category with a fallback
+      const category = assessment?.category || 'this subject';
+      
+      return (
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold text-white mb-4">Study Recommendations</h3>
+          <div className="space-y-6">
+            <div className="p-6 bg-gray-800 rounded-lg">
+              <h4 className="text-lg font-medium text-blue-400 mb-2">
+                Focus Areas
+              </h4>
+              <p className="text-gray-300 mb-4">
+                Pay special attention to these topics that appeared in questions you found challenging.
+              </p>
+              <div className="space-y-2 mt-3">
+                {keywords.map((keyword, idx) => (
+                  <div key={idx} className="flex items-start">
+                    <span className="text-blue-500 mr-2">{idx + 1}.</span>
+                    <span className="text-gray-300">Focus on basics of {keyword} and related functionalities</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+  
+  // Helper function to extract common keywords from questions
+  const extractKeywords = (questions: string[]): string[] => {
+    if (questions.length === 0) return [];
+    
+    // Common stop words to filter out
+    const stopWords = ['a', 'an', 'the', 'is', 'are', 'of', 'in', 'to', 'for', 'with', 'and', 'or', 'what', 'which', 'how'];
+    
+    // Join all questions and split into words
+    const allWords = questions.join(' ')
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove punctuation
+      .split(/\s+/) // Split by whitespace
+      .filter(word => word.length > 3 && !stopWords.includes(word)); // Filter out short words and stop words
+    
+    // Count word frequency
+    const wordCount: {[key: string]: number} = {};
+    allWords.forEach(word => {
+      wordCount[word] = (wordCount[word] || 0) + 1;
+    });
+    
+    // Get the most common words (keywords)
+    return Object.entries(wordCount)
+      .sort((a, b) => b[1] - a[1]) // Sort by frequency
+      .slice(0, 5) // Take top 5
+      .map(([word]) => word);
+  };
+
+  // Render time analytics summary
+  const renderTimeAnalytics = () => {
+    if (!result || !questionTimings) return null;
+    
+    // Calculate total time spent
+    const totalTimeSpent = Object.values(questionTimings).reduce((total, time) => total + time, 0);
+    
+    // Find questions that took the most time
+    const sortedQuestions = [...result.answersByQuestion]
+      .sort((a, b) => (questionTimings[b.questionId] || 0) - (questionTimings[a.questionId] || 0))
+      .slice(0, 3); // Top 3 time-consuming questions
+    
+    // Find questions that were answered incorrectly
+    const incorrectQuestions = result.answersByQuestion.filter(q => !q.correct);
+    
+    return (
+      <div className="mt-8 bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
+        <div className="p-6 border-b border-gray-800">
+          <h3 className="text-xl font-semibold text-white">Time Analytics</h3>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400 mb-1">Total Time Spent</div>
+              <div className="text-xl font-bold text-white">
+                {Math.floor(totalTimeSpent / 60)}m {totalTimeSpent % 60}s
+              </div>
+            </div>
+            
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400 mb-1">Average Time per Question</div>
+              <div className="text-xl font-bold text-white">
+                {Math.floor((totalTimeSpent / result.answersByQuestion.length) / 60)}m {Math.round((totalTimeSpent / result.answersByQuestion.length) % 60)}s
+              </div>
+            </div>
+            
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400 mb-1">Completion Rate</div>
+              <div className="text-xl font-bold text-white">
+                {Math.round((result.answersByQuestion.length / (questions?.length || 1)) * 100)}%
+              </div>
+            </div>
+          </div>
+          
+          {sortedQuestions.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">
+                Questions That Took the Most Time
+              </h4>
+              <div className="space-y-3">
+                {sortedQuestions.map((q, index) => (
+                  <div key={q.questionId} className="bg-gray-800/50 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="text-gray-500 mr-3">{index + 1}.</div>
+                      <div className="flex-1">
+                        <div className="text-white mb-1">{q.question}</div>
+                        <div className="flex items-center text-sm">
+                          <FaClock className="text-blue-400 mr-1 w-3 h-3" />
+                          <span className="text-blue-400">
+                            {Math.floor(questionTimings[q.questionId] / 60)}m {questionTimings[q.questionId] % 60}s
+                          </span>
+                          <span className="mx-2 text-gray-600">|</span>
+                          {q.correct ? (
+                            <span className="text-green-500 flex items-center">
+                              <FaCheck className="mr-1 w-3 h-3" /> Correct
+                            </span>
+                          ) : (
+                            <span className="text-red-500 flex items-center">
+                              <FaTimes className="mr-1 w-3 h-3" /> Incorrect
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {incorrectQuestions.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">
+                Areas for Improvement
+              </h4>
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-gray-300 text-sm mb-2">
+                  You answered {incorrectQuestions.length} question{incorrectQuestions.length > 1 ? 's' : ''} incorrectly. 
+                  Focus on studying these topics to improve your performance.
+                </p>
+                
+                {incorrectQuestions.length <= 3 ? (
+                  <div className="mt-2 space-y-2">
+                    {incorrectQuestions.map((q, idx) => (
+                      <div key={idx} className="flex items-start">
+                        <span className="text-red-500 mr-2">•</span>
+                        <span className="text-gray-300">{q.question}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {/* Show a sample of incorrect questions (first 3) */}
+                    {incorrectQuestions.slice(0, 3).map((q, idx) => (
+                      <div key={idx} className="flex items-start">
+                        <span className="text-red-500 mr-2">•</span>
+                        <span className="text-gray-300">{q.question}</span>
+                      </div>
+                    ))}
+                    {/* Show a message about more questions */}
+                    <div className="flex items-start">
+                      <span className="text-red-500 mr-2">•</span>
+                      <span className="text-gray-300 italic">
+                        And {incorrectQuestions.length - 3} more question{incorrectQuestions.length - 3 > 1 ? 's' : ''}...
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm text-blue-400">
+                      Review the study recommendations below for detailed topics to improve your understanding.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 p-8">
@@ -604,102 +996,89 @@ export default function AssessmentPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         ) : assessmentStatus === "results" ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
-            <div className="p-6 border-b border-gray-800">
-              <h1 className="text-2xl font-bold text-white">Assessment Results</h1>
-              <h2 className="text-md font-medium text-gray-400 mt-1">{assessment.title}</h2>
-            </div>
+          <div>
+            <button
+              onClick={() => router.push('/skill-assessment')}
+              className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 mb-8 group"
+            >
+              <FaArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
+              <span>Back to Assessments</span>
+            </button>
             
-            <div className="p-6 border-b border-gray-800">
-              <div className="flex flex-col items-center justify-center py-8 px-4">
-                <div className="relative mb-3">
-                  <div className="w-32 h-32 rounded-full border-4 border-gray-700 flex items-center justify-center">
-                    <div 
-                      className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold"
-                      style={{
-                        background: `conic-gradient(${result?.isPassing ? '#10B981' : '#EF4444'} ${result?.percentage}%, #374151 0)`,
-                      }}
-                    >
-                      <div className="w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center">
-                        <span className={result?.isPassing ? "text-green-500" : "text-red-500"}>
-                          {result?.percentage}%
-                        </span>
-                      </div>
-                    </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden mb-10">
+              <div className="p-6 border-b border-gray-800 flex flex-col md:flex-row items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-white mb-1">{assessment?.title} Results</h1>
+                  <p className="text-gray-400">Assessment completed</p>
+                </div>
+                <div className="mt-4 md:mt-0 flex items-center">
+                  <div className={`text-xl font-bold ${result?.isPassing ? 'text-green-500' : 'text-red-500'}`}>
+                    {result?.percentage}%
                   </div>
-                  <div className={`absolute -top-2 -right-2 rounded-full w-8 h-8 flex items-center justify-center ${result?.isPassing ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {result?.isPassing ? 
-                      <FaCheck className="w-4 h-4 text-white" /> : 
-                      <FaTimes className="w-4 h-4 text-white" />
-                    }
+                  <div className="mx-3 text-gray-600">|</div>
+                  <div className="text-gray-300">
+                    {result?.score} / {result?.maxScore} points
                   </div>
                 </div>
-                <div className="text-xl mb-2">
+              </div>
+              
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-white">Question Breakdown</h2>
                   {result?.isPassing ? (
-                    <span className="text-green-500 font-semibold">Passed</span>
+                    <div className="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-sm font-medium">
+                      Passed
+                    </div>
                   ) : (
-                    <span className="text-red-500 font-semibold">Failed</span>
+                    <div className="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-sm font-medium">
+                      Failed
+                    </div>
                   )}
                 </div>
-                <div className="text-gray-400 text-sm">
-                  Score: {result?.score} / {result?.maxScore} points
+                
+                <div className="space-y-6">
+                  {result?.answersByQuestion.map((answer, index) => (
+                    <div key={answer.questionId} className="p-4 bg-gray-800 rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-2">
+                            <span className="text-gray-400 mr-2">{index + 1}.</span>
+                            <span className="text-white">{answer.question}</span>
+                          </div>
+                          
+                          {/* Display time spent on this question */}
+                          <div className="flex items-center text-sm text-gray-400 mt-1">
+                            <FaClock className="mr-1 w-3 h-3" />
+                            <span>
+                              Time spent: {Math.floor(questionTimings[answer.questionId] / 60)}m {questionTimings[answer.questionId] % 60}s
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          {answer.correct ? (
+                            <div className="flex items-center">
+                              <FaCheck className="text-green-500 mr-1" />
+                              <span className="text-green-500 font-medium">{answer.points} pts</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <FaTimes className="text-red-500 mr-1" />
+                              <span className="text-red-500 font-medium">0 pts</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
             
-            <div className="p-6 border-b border-gray-800">
-              <h3 className="text-md font-medium text-white mb-4 flex items-center">
-                <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                Question Summary
-              </h3>
-              
-              <div className="space-y-3">
-                {result?.answersByQuestion.map((item, index) => (
-                  <div key={index} className="bg-gray-800/80 rounded-lg p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center">
-                          <span className="text-gray-400 text-sm">Question {index + 1}</span>
-                          <div className={`ml-2 px-2 py-0.5 text-xs rounded-full ${item.correct ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                            {item.correct ? 'Correct' : 'Incorrect'}
-                          </div>
-                        </div>
-                        <p className="text-white text-sm mt-1.5">{item.question}</p>
-                      </div>
-                      <div className="flex items-center">
-                        {item.correct ? (
-                          <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                            <FaCheck className="w-3.5 h-3.5 text-green-400" />
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                            <FaTimes className="w-3.5 h-3.5 text-red-400" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Render time analytics section */}
+            {renderTimeAnalytics()}
             
-            <div className="p-6 flex justify-center space-x-4">
-              <button
-                onClick={() => router.push('/skill-assessment')}
-                className="py-3 px-6 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Back to Assessments
-              </button>
-              <button
-                onClick={() => {
-                  setAssessmentStatus("intro");
-                  setResult(null);
-                }}
-                className="py-3 px-6 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-medium rounded-lg shadow-lg shadow-blue-900/20 transition-all duration-200"
-              >
-                Try Again
-              </button>
-            </div>
+            {/* Render study recommendations */}
+            {renderStudyRecommendations()}
           </div>
         ) : (
           // In-progress UI

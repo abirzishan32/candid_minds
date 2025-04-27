@@ -365,7 +365,7 @@ export default async function HomePage() {
               </Link>
             </div>
             
-            <div>
+        <div>
               <div className="relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 rounded-lg blur opacity-20"></div>
                 <div className="relative bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
