@@ -64,16 +64,7 @@ export default async function HomePage() {
                 </Link>
               </div>
               
-              <div className="flex items-center gap-4 pt-6">
-                <div className="flex -space-x-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-10 w-10 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center text-xs font-medium">
-                      {i}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm text-gray-400">Join thousands of professionals advancing their careers</p>
-              </div>
+              
             </div>
             
             <div className="lg:w-1/2 relative">
@@ -86,12 +77,7 @@ export default async function HomePage() {
                   height={400}
                   className="w-full rounded-lg shadow-lg object-cover transition transform hover:scale-105 duration-700"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <p className="text-sm font-medium">Live Interview Session</p>
-                  </div>
-                </div>
+                
               </div>
             </div>
           </div>
