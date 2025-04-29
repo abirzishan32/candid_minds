@@ -75,8 +75,8 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
                         <div className="hidden md:flex items-center gap-7">
                             <NavLink href="/interview-home" label="Interviews" />
                             <NavLink href="/skill-assessment" label="Skills Assessment" />
-                            <NavLink href="/resume-checker" label="Resume Checker" />
-                            <NavLink href="/job-market" label="Job Market Insights" />
+                            <NavLink href="/resume-builder" label="Resume Builder" />
+                            <NavLink href="/career" label="Community" />
                             {isModerator && (
                                 <NavLink href="/moderator-dashboard" label="Moderator Dashboard" />
                             )}
@@ -173,7 +173,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
                             <div className="flex flex-col gap-6">
                                 <MobileNavLink href="/interview-home" label="Interviews" onClick={() => setIsMenuOpen(false)} />
                                 <MobileNavLink href="/skill-assessment" label="Skills Assessment" onClick={() => setIsMenuOpen(false)} />
-                                <MobileNavLink href="/resume-checker" label="Resume Checker" onClick={() => setIsMenuOpen(false)} />
+                                <MobileNavLink href="/resume-builder" label="Resume Builder" onClick={() => setIsMenuOpen(false)} />
                                 <MobileNavLink href="/job-market" label="Job Market Insights" onClick={() => setIsMenuOpen(false)} />
                                 {isModerator && (
                                     <MobileNavLink href="/moderator-dashboard" label="Moderator Dashboard" onClick={() => setIsMenuOpen(false)} />

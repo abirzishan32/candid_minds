@@ -93,54 +93,7 @@ const courseCategories = [
     }
 ];
 
-const CourseCard = ({ course }) => {
-    return (
-        <div className="course-card bg-gradient-to-br from-dark-200 to-dark-300 rounded-xl overflow-hidden border border-gray-800 hover:border-primary-200/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 hover:translate-y-[-5px]">
-            <div className="relative h-48 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-dark-100 to-transparent z-10" />
-                <div className="absolute top-2 right-2 bg-dark-100/80 backdrop-blur-sm text-xs px-3 py-1 rounded-full z-20">
-                    {course.level}
-                </div>
-                <div className="relative h-full w-full">
-                    {/* Fallback image with gradient overlay if actual image not available */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
-                </div>
-            </div>
 
-            <div className="p-5">
-                <h3 className="text-xl font-semibold text-white mb-2 line-clamp-1">{course.title}</h3>
-
-                <div className="flex justify-between items-center mt-3 text-sm text-gray-400">
-                    <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        {course.modules} modules
-                    </div>
-                    <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {course.duration}
-                    </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-800">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-              <span className="text-xs bg-primary/20 text-primary-100 px-2 py-1 rounded-md">
-                {course.popularity}% completion rate
-              </span>
-                        </div>
-                        <Button variant="ghost" size="sm" className="hover:bg-primary/20 hover:text-primary-100">
-                            View Course
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 const Page = async () => {
     const user = await getCurrentUser();
@@ -217,32 +170,7 @@ const Page = async () => {
                 </div>
             </section>
 
-            {/* Course Categories */}
-            {courseCategories.map((category) => (
-                <section key={category.id} className="my-16">
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 className="text-2xl font-bold flex items-center gap-2">
-                                <span className="w-2 h-6 bg-primary rounded-full"></span>
-                                {category.name}
-                            </h2>
-                            <p className="text-gray-400 mt-1">{category.description}</p>
-                        </div>
-                        <Link href={`/course-home/category/${category.id}`} className="text-primary-100 hover:text-primary-200 text-sm flex items-center">
-                            View all
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </Link>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {category.courses.map((course) => (
-                            <CourseCard key={course.id} course={course} />
-                        ))}
-                    </div>
-                </section>
-            ))}
+            
 
             {/* Call to Action */}
             <section className="my-16 relative">
