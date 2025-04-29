@@ -87,18 +87,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       icon: FaUsers,
       active: pathname.startsWith('/user-management')
     },
-    {
-      name: 'Analytics',
-      href: '/admin-dashboard',
-      icon: FaChartLine,
-      active: pathname.startsWith('/admin-dashboard')
-    },
-    {
-      name: 'Settings',
-      href: '/settings',
-      icon: FaCog,
-      active: pathname === '/settings'
-    }
+    
   ];
 
   return (
