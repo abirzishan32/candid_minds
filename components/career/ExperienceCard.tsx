@@ -2,16 +2,15 @@
 
 import { format } from "date-fns";
 import Link from "next/link";
-import { Building, CalendarDays, Award, Users, MessageSquare, Share2, Bookmark, ThumbsUp, MoreHorizontal } from "lucide-react";
-import { CareerExperience, hasUserLiked, toggleLike, hasUserSaved, toggleSavePost, hasUserLikedV2, hasUserSavedV2, toggleLikeV2, toggleSavePostV2 } from "@/lib/actions/career-experience.action";
+import { Building, CalendarDays, Award, Users, MessageSquare, Share2, ThumbsUp, MoreHorizontal } from "lucide-react";
+import { CareerExperience, hasUserLikedV2, toggleLikeV2 } from "@/lib/actions/career-experience.action";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Server action to get the current user
 async function fetchCurrentUser() {
-
-  
   const { getCurrentUser } = await import("@/lib/actions/auth.action");
   return getCurrentUser();
 }
@@ -21,11 +20,16 @@ interface ExperienceCardProps {
 }
 
 export default function ExperienceCard({ experience }: ExperienceCardProps) {
+  const router = useRouter();
   const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [likeCount, setLikeCount] = useState(experience.likesCount || 0);
+  
+  // Limit details to 1500 characters
+  const limitedDetails = experience.details?.length > 1500 
+    ? experience.details.substring(0, 1500) + "..." 
+    : experience.details;
   
   const formattedDate = experience.createdAt 
     ? format(new Date(experience.createdAt), "MMM d, yyyy")
@@ -52,15 +56,12 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
         
         if (currentUser) {
           // Check if the user has liked this post
-          const likeResult = await hasUserLiked(experience.id, currentUser.id);
+          const likeResult = await hasUserLikedV2({ 
+            experienceId: experience.id, 
+            userId: currentUser.id 
+          });
           if (likeResult.success) {
-            setLiked(likeResult.hasLiked);
-          }
-          
-          // Check if the user has saved this post
-          const saveResult = await hasUserSaved(experience.id, currentUser.id);
-          if (saveResult.success) {
-            setBookmarked(saveResult.hasSaved);
+            setLiked(likeResult.liked);
           }
         }
       } catch (error) {
@@ -73,7 +74,9 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
     loadUserAndInteractions();
   }, [experience.id]);
   
-  const handleToggleLike = async () => {
+  const handleToggleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering card click
+    
     if (!user) {
       toast.error("Please sign in to like this post");
       return;
@@ -85,7 +88,10 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
       setLikeCount(prevCount => liked ? prevCount - 1 : prevCount + 1);
       
       // Call the server action to toggle like
-      const result = await toggleLike(experience.id, user.id);
+      const result = await toggleLikeV2({ 
+        experienceId: experience.id, 
+        userId: user.id 
+      });
       
       if (!result.success) {
         // Revert optimistic update if the server action failed
@@ -98,34 +104,6 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
       setLiked(liked);
       setLikeCount(likeCount);
       console.error("Error toggling like:", error);
-      toast.error("An error occurred");
-    }
-  };
-  
-  const handleToggleBookmark = async () => {
-    if (!user) {
-      toast.error("Please sign in to save this post");
-      return;
-    }
-    
-    try {
-      // Optimistic UI update
-      setBookmarked(!bookmarked);
-      
-      // Call the server action to toggle bookmark
-      const result = await toggleSavePost(experience.id, user.id);
-      
-      if (!result.success) {
-        // Revert optimistic update if the server action failed
-        setBookmarked(bookmarked);
-        toast.error("Failed to update bookmark status");
-      } else {
-        toast.success(bookmarked ? "Post removed from saved items" : "Post saved to your collection");
-      }
-    } catch (error) {
-      // Revert optimistic update on error
-      setBookmarked(bookmarked);
-      console.error("Error toggling bookmark:", error);
       toast.error("An error occurred");
     }
   };
@@ -157,7 +135,9 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
                 </p>
               </div>
               
-              <button className="text-gray-500 hover:text-gray-300">
+              <button 
+                className="text-gray-500 hover:text-gray-300"
+              >
                 <MoreHorizontal className="h-5 w-5" />
               </button>
             </div>
@@ -170,37 +150,31 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
           <span>Via: {experience.source}</span>
         </div>
         
-        {/* Content */}
-        <div className="mb-3">
-          <p className="text-gray-300 text-sm line-clamp-3">{experience.details}</p>
+        {/* Content - Full Post Content limited to 1500 chars */}
+        <div className="mb-4">
+          <p className="text-gray-300 text-sm whitespace-pre-line">{limitedDetails}</p>
           
-          <Link 
-            href={`/career/${experience.id}`}
-            className="text-blue-400 hover:text-blue-300 text-xs font-medium mt-1 inline-block"
-          >
-            Read more
-          </Link>
+          {experience.details?.length > 1500 && (
+            <Link 
+              href={`/career/${experience.id}`}
+              className="text-blue-400 hover:text-blue-300 text-xs font-medium mt-2 inline-block"
+            >
+              See full post
+            </Link>
+          )}
         </div>
         
-        {/* Questions Preview */}
+        {/* Questions */}
         {experience.questions && experience.questions.length > 0 && (
           <div className="mb-4 mt-3 bg-gray-800/50 p-3 rounded-md border border-gray-800">
             <h4 className="text-xs font-semibold text-gray-300 mb-1">Interview Questions:</h4>
             <ul className="text-gray-400 text-xs space-y-1.5">
-              {experience.questions.slice(0, 2).map((question, index) => (
+              {experience.questions.map((question, index) => (
                 <li key={index} className="flex gap-1.5">
                   <span className="text-blue-400">Q:</span>
-                  <span className="line-clamp-1">{question}</span>
+                  <span>{question}</span>
                 </li>
               ))}
-              {experience.questions.length > 2 && (
-                <Link 
-                  href={`/career/${experience.id}`} 
-                  className="text-blue-400 hover:text-blue-300 text-xs inline-block mt-1"
-                >
-                  + {experience.questions.length - 2} more questions
-                </Link>
-              )}
             </ul>
           </div>
         )}
@@ -224,18 +198,11 @@ export default function ExperienceCard({ experience }: ExperienceCardProps) {
             <span className="text-xs">{experience.commentsCount ? experience.commentsCount : "Comment"}</span>
           </Link>
           
-          <button className="flex items-center gap-1.5 hover:text-blue-400 transition-colors">
-            <Share2 className="h-4 w-4" />
-            <span className="text-xs">Share</span>
-          </button>
-          
           <button 
             className="flex items-center gap-1.5 hover:text-blue-400 transition-colors"
-            onClick={handleToggleBookmark}
-            disabled={isLoading}
           >
-            <Bookmark className={cn("h-4 w-4", bookmarked && "text-blue-400 fill-blue-400")} />
-            <span className={cn("text-xs", bookmarked && "text-blue-400")}>Save</span>
+            <Share2 className="h-4 w-4" />
+            <span className="text-xs">Share</span>
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Building, MessageSquare, TrendingUp, Search, Zap, Shield, Users, Hash, Bookmark } from "lucide-react";
+import { Building, MessageSquare, TrendingUp, Search, Zap, Shield, Users, Hash, Plus } from "lucide-react";
 import { getCareerExperiences, CareerExperience } from "@/lib/actions/career-experience.action";
 import ExperienceCard from "@/components/career/ExperienceCard";
 import ClientExperienceForm from "@/components/career/ClientExperienceForm";
@@ -58,10 +58,30 @@ function PostPrompt() {
   );
 }
 
+// Wrapper to handle async data fetching for trending companies
+async function TrendingCompaniesWrapper() {
+  const result = await getCareerExperiences();
+  const experiences: CareerExperience[] = result.success && result.data ? result.data : [];
+  
+  // Count experiences per company
+  const companyCountMap = new Map<string, number>();
+  experiences.forEach(exp => {
+    const count = companyCountMap.get(exp.companyName) || 0;
+    companyCountMap.set(exp.companyName, count + 1);
+  });
+  
+  // Convert to array of objects with company name and count
+  const companyStats = Array.from(companyCountMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count); // Sort by count in descending order
+  
+  return <TrendingCompanies companyStats={companyStats} />;
+}
+
 // Companies & Topics component (similar to Twitter/X trends)
-function TrendingCompanies({ companies }: { companies: string[] }) {
+function TrendingCompanies({ companyStats }: { companyStats: Array<{ name: string, count: number }> }) {
   // Take up to 5 companies, or fewer if not enough
-  const displayCompanies = companies.slice(0, Math.min(5, companies.length));
+  const displayCompanies = companyStats.slice(0, Math.min(5, companyStats.length));
   
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
@@ -71,15 +91,15 @@ function TrendingCompanies({ companies }: { companies: string[] }) {
       
       <div>
         {displayCompanies.length > 0 ? (
-          displayCompanies.map((company, index) => (
+          displayCompanies.map((company) => (
             <Link 
-              key={company} 
-              href={`/career/company/${encodeURIComponent(company)}`}
+              key={company.name} 
+              href={`/career/company/${encodeURIComponent(company.name)}`}
               className="flex justify-between items-center p-3 hover:bg-gray-800/50 transition-colors border-b border-gray-800/50 last:border-0"
             >
               <div>
-                <p className="font-medium text-white">{company}</p>
-                <p className="text-xs text-gray-500">{index + 1} Experiences</p>
+                <p className="font-medium text-white">{company.name}</p>
+                <p className="text-xs text-gray-500">{company.count} {company.count === 1 ? 'Experience' : 'Experiences'}</p>
               </div>
               <Building className="h-5 w-5 text-gray-500" />
             </Link>
@@ -134,89 +154,31 @@ function TopicsList() {
 
 export default function CareerPage() {
   return (
-    <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 max-w-7xl">
-      <div className="grid grid-cols-1 lg:grid-cols-14 gap-0 sm:gap-4">
-        {/* Left Sidebar - Desktop Only */}
-        <div className="hidden lg:block lg:col-span-2 space-y-2">
-          <div className="lg:sticky lg:top-4 lg:pl-0">
-            <div className="p-2 flex flex-col space-y-3">
-              <Link 
-                href="/career" 
-                className="flex items-center gap-2 p-2 bg-gray-800/50 rounded-full font-medium text-white"
-              >
-                <MessageSquare className="h-5 w-5" />
-                <span className="text-sm truncate">Experiences</span>
-              </Link>
-              
-              <Link 
-                href="/career/saved" 
-                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
-              >
-                <Bookmark className="h-5 w-5" />
-                <span className="text-sm truncate">Saved</span>
-              </Link>
-              
-              <Link 
-                href="#" 
-                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
-              >
-                <TrendingUp className="h-5 w-5" />
-                <span className="text-sm truncate">Trending</span>
-              </Link>
-              
-              <Link 
-                href="#" 
-                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
-              >
-                <Building className="h-5 w-5" />
-                <span className="text-sm truncate">Companies</span>
-              </Link>
-              
-              <Link 
-                href="#" 
-                className="flex items-center gap-2 p-2 hover:bg-gray-800/50 rounded-full text-gray-300 hover:text-white transition-colors"
-              >
-                <Users className="h-5 w-5" />
-                <span className="text-sm truncate">My Posts</span>
-              </Link>
-              
-              <div className="pt-2">
-                <Link
-                  href="#post-form"
-                  className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-full w-full transition-colors text-sm"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="truncate">Share</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-        
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Timeline */}
-        <div className="col-span-1 lg:col-span-8 border-x border-gray-800 min-h-screen">
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-black p-4 border-b border-gray-800 backdrop-blur bg-black/80">
-            <h1 className="text-xl font-bold text-white">Interview Experiences</h1>
+        <div className="col-span-1 lg:col-span-8">
+          {/* Modern Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-0">
+              Interview Experiences
+            </h1>
+            
+            
           </div>
           
-          <div className="p-4 border-b border-gray-800 lg:hidden">
-            <div className="flex gap-4">
+          {/* Mobile Navigation */}
+          <div className="mb-6 lg:hidden">
+            <div className="flex gap-4 bg-gray-900 border border-gray-800 rounded-xl overflow-hidden p-1">
               <Link 
                 href="/career" 
-                className="flex-1 text-center py-3 border-b-2 border-blue-500 text-white font-medium"
+                className="flex-1 text-center py-2 rounded-lg bg-gray-800 text-white font-medium"
               >
                 For you
               </Link>
               <Link 
-                href="/career/saved" 
-                className="flex-1 text-center py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300"
-              >
-                Saved
-              </Link>
-              <Link 
                 href="#" 
-                className="flex-1 text-center py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300"
+                className="flex-1 text-center py-2 rounded-lg text-gray-400 hover:text-gray-300"
               >
                 Trending
               </Link>
@@ -224,17 +186,22 @@ export default function CareerPage() {
           </div>
           
           {/* Post Form - Mobile Only */}
-          <div className="p-4 border-b border-gray-800 block lg:hidden">
+          <div className="mb-6 block lg:hidden">
             <PostPrompt />
           </div>
           
           {/* Post Form */}
-          <div id="post-form" className="p-4 border-b border-gray-800 hidden lg:block">
-            <ClientExperienceForm />
+          <div id="post-form" className="mb-6 border border-gray-800 rounded-xl overflow-hidden bg-gray-900 hidden lg:block">
+            <div className="p-4 border-b border-gray-800">
+              <h2 className="text-lg font-bold text-white">Share Your Experience</h2>
+            </div>
+            <div className="p-4">
+              <ClientExperienceForm />
+            </div>
           </div>
           
           {/* Timeline */}
-          <div className="divide-y divide-gray-800/80">
+          <div className="space-y-6">
             <Suspense fallback={
               <div className="flex justify-center items-center py-20">
                 <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
@@ -246,45 +213,46 @@ export default function CareerPage() {
         </div>
         
         {/* Right Sidebar */}
-        <div className="hidden lg:block lg:col-span-4 space-y-4">
-          <div className="lg:sticky lg:top-4 space-y-4">
-            {/* Search */}
-            <div className="bg-gray-900 border border-gray-800 rounded-full px-4 py-2 flex items-center gap-3">
-              <Search className="h-5 w-5 text-gray-500" />
-              <input 
-                type="text" 
-                placeholder="Search experiences" 
-                className="bg-transparent border-none focus:outline-none text-white w-full"
-              />
-            </div>
-            
-            <Suspense fallback={null}>
+        <div className="col-span-1 lg:col-span-4 space-y-6">
+          <div className="lg:sticky lg:top-6">
+            <Suspense fallback={
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 animate-pulse">
+                <div className="h-6 bg-gray-800 rounded-md w-1/2 mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-10 bg-gray-800 rounded-md w-full"></div>
+                  <div className="h-10 bg-gray-800 rounded-md w-full"></div>
+                  <div className="h-10 bg-gray-800 rounded-md w-full"></div>
+                </div>
+              </div>
+            }>
               <TrendingCompaniesWrapper />
             </Suspense>
             
-            <TopicsList />
+            <div className="mt-6">
+              <TopicsList />
+            </div>
             
             {/* Why Share Box */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <h3 className="text-lg font-bold text-white mb-3">Why Share Anonymously?</h3>
-              <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-start gap-2">
-                  <span className="bg-blue-500/10 p-1 rounded-full text-blue-400 mt-0.5">
-                    <Shield className="h-3 w-3" />
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-6">
+              <h3 className="text-lg font-bold text-white mb-4">Why Share Anonymously?</h3>
+              <ul className="space-y-3 text-sm text-gray-300">
+                <li className="flex items-start gap-3">
+                  <span className="bg-blue-500/10 p-1.5 rounded-full text-blue-400 mt-0.5 flex-shrink-0">
+                    <Shield className="h-4 w-4" />
                   </span>
-                  Your identity remains private & secure
+                  <span>Your identity remains private & secure</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="bg-blue-500/10 p-1 rounded-full text-blue-400 mt-0.5">
-                    <Users className="h-3 w-3" />
+                <li className="flex items-start gap-3">
+                  <span className="bg-blue-500/10 p-1.5 rounded-full text-blue-400 mt-0.5 flex-shrink-0">
+                    <Users className="h-4 w-4" />
                   </span>
-                  Help others prepare for interviews
+                  <span>Help others prepare for interviews with real experiences</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="bg-blue-500/10 p-1 rounded-full text-blue-400 mt-0.5">
-                    <TrendingUp className="h-3 w-3" />
+                <li className="flex items-start gap-3">
+                  <span className="bg-blue-500/10 p-1.5 rounded-full text-blue-400 mt-0.5 flex-shrink-0">
+                    <TrendingUp className="h-4 w-4" />
                   </span>
-                  Improve transparency in tech hiring
+                  <span>Improve transparency in tech hiring practices</span>
                 </li>
               </ul>
             </div>
@@ -293,13 +261,4 @@ export default function CareerPage() {
       </div>
     </div>
   );
-}
-
-// Wrapper to handle async data fetching for trending companies
-async function TrendingCompaniesWrapper() {
-  const result = await getCareerExperiences();
-  const experiences: CareerExperience[] = result.success && result.data ? result.data : [];
-  const companies = [...new Set(experiences.map(exp => exp.companyName))];
-  
-  return <TrendingCompanies companies={companies} />;
 }

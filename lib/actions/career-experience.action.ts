@@ -317,128 +317,48 @@ export async function getComments(experienceId: string) {
   }
 }
 
-/**
- * Save or unsave a career experience post for a user
- */
-export async function toggleSavePost(experienceId: string, userId: string) {
-  try {
-    // Check if the user has already saved this post
-    const saveRef = db.collection("careerExperienceSaves").doc(`${userId}_${experienceId}`);
-    const saveDoc = await saveRef.get();
-    
-    if (saveDoc.exists) {
-      // User already saved this post, so unsave it
-      await saveRef.delete();
-      
-      revalidatePath(`/career`);
-      revalidatePath(`/career/${experienceId}`);
-      revalidatePath(`/career/saved`);
-      
-      return { success: true, action: 'unsaved' };
-    } else {
-      // User hasn't saved this post yet, so save it
-      await saveRef.set({
-        experienceId,
-        userId,
-        createdAt: FieldValue.serverTimestamp()
-      });
-      
-      revalidatePath(`/career`);
-      revalidatePath(`/career/${experienceId}`);
-      revalidatePath(`/career/saved`);
-      
-      return { success: true, action: 'saved' };
-    }
-  } catch (error) {
-    console.error("Error toggling save post:", error);
-    return { success: false, message: "Failed to toggle save post" };
-  }
-}
-
-/**
- * Check if a user has saved a specific post
- */
-export async function hasUserSaved(experienceId: string, userId: string) {
-  try {
-    const saveRef = db.collection("careerExperienceSaves").doc(`${userId}_${experienceId}`);
-    const saveDoc = await saveRef.get();
-    
-    return { success: true, hasSaved: saveDoc.exists };
-  } catch (error) {
-    console.error("Error checking if user saved post:", error);
-    return { success: false, message: "Failed to check save status", hasSaved: false };
-  }
-}
-
-/**
- * Get all saved career experiences for a user
- */
-export async function getSavedExperiences(userId: string) {
-  try {
-    if (!userId) return { success: true, data: [] };
-    
-    const savesQuery = query(
-      collection(db, "careerExperienceSaves"),
-      where("userId", "==", userId)
-    );
-    
-    const savesSnapshot = await getDocs(savesQuery);
-    const savedIds = savesSnapshot.docs.map(doc => doc.data().experienceId);
-    
-    // Get the actual experience data for all saved IDs
-    const experiences = [];
-    
-    for (const id of savedIds) {
-      const experienceRef = doc(db, "careerExperience", id);
-      const experienceSnap = await getDoc(experienceRef);
-      
-      if (experienceSnap.exists()) {
-        experiences.push({
-          id: experienceSnap.id,
-          ...experienceSnap.data()
-        });
-      }
-    }
-    
-    return { success: true, data: experiences };
-  } catch (error) {
-    console.error("Error getting saved experiences:", error);
-    return { success: false, data: [] };
-  }
-}
-
 // Function to toggle a like for a post
 export async function toggleLikeV2({ experienceId, userId }: { experienceId: string, userId: string }) {
   try {
-    // Get the experience document
-    const experienceRef = doc(db, "careerExperience", experienceId);
-    const experienceSnap = await getDoc(experienceRef);
+    // Get the experience document using Admin SDK
+    const experienceRef = db.collection("careerExperience").doc(experienceId);
+    const experienceDoc = await experienceRef.get();
     
-    if (!experienceSnap.exists()) {
+    if (!experienceDoc.exists) {
       return { success: false, message: "Experience not found" };
     }
     
     // Check if the user has already liked this post
-    const likeRef = doc(db, "careerExperienceLikes", `${experienceId}_${userId}`);
-    const likeSnap = await getDoc(likeRef);
+    const likeRef = db.collection("careerExperienceLikes").doc(`${experienceId}_${userId}`);
+    const likeDoc = await likeRef.get();
     
-    if (likeSnap.exists()) {
+    if (likeDoc.exists) {
       // User already liked it, so remove the like
-      await deleteDoc(likeRef);
-      await updateDoc(experienceRef, {
-        likesCount: increment(-1)
+      await likeRef.delete();
+      await experienceRef.update({
+        likesCount: FieldValue.increment(-1)
       });
+      
+      // Revalidate paths
+      revalidatePath('/career');
+      revalidatePath(`/career/${experienceId}`);
+      
       return { success: true, liked: false };
     } else {
       // User hasn't liked it yet, so add a like
-      await setDoc(likeRef, {
+      await likeRef.set({
         userId,
         experienceId,
         createdAt: FieldValue.serverTimestamp()
       });
-      await updateDoc(experienceRef, {
-        likesCount: increment(1)
+      await experienceRef.update({
+        likesCount: FieldValue.increment(1)
       });
+      
+      // Revalidate paths
+      revalidatePath('/career');
+      revalidatePath(`/career/${experienceId}`);
+      
       return { success: true, liked: true };
     }
   } catch (error) {
@@ -452,54 +372,13 @@ export async function hasUserLikedV2({ experienceId, userId }: { experienceId: s
   try {
     if (!userId) return { success: true, liked: false };
     
-    const likeRef = doc(db, "careerExperienceLikes", `${experienceId}_${userId}`);
-    const likeSnap = await getDoc(likeRef);
+    const likeRef = db.collection("careerExperienceLikes").doc(`${experienceId}_${userId}`);
+    const likeDoc = await likeRef.get();
     
-    return { success: true, liked: likeSnap.exists() };
+    return { success: true, liked: likeDoc.exists };
   } catch (error) {
     console.error("Error checking if user liked:", error);
     return { success: false, liked: false };
-  }
-}
-
-// Function to toggle save/bookmark for a post
-export async function toggleSavePostV2({ experienceId, userId }: { experienceId: string, userId: string }) {
-  try {
-    // Get the user's saved posts document
-    const saveRef = doc(db, "careerExperienceSaves", `${userId}_${experienceId}`);
-    const saveSnap = await getDoc(saveRef);
-    
-    if (saveSnap.exists()) {
-      // User already saved it, so remove the save
-      await deleteDoc(saveRef);
-      return { success: true, saved: false };
-    } else {
-      // User hasn't saved it yet, so add a save
-      await setDoc(saveRef, {
-        userId,
-        experienceId,
-        createdAt: FieldValue.serverTimestamp()
-      });
-      return { success: true, saved: true };
-    }
-  } catch (error) {
-    console.error("Error toggling save:", error);
-    return { success: false, message: "Failed to toggle save" };
-  }
-}
-
-// Function to check if a user has saved a post
-export async function hasUserSavedV2({ experienceId, userId }: { experienceId: string, userId: string }) {
-  try {
-    if (!userId) return { success: true, saved: false };
-    
-    const saveRef = doc(db, "careerExperienceSaves", `${userId}_${experienceId}`);
-    const saveSnap = await getDoc(saveRef);
-    
-    return { success: true, saved: saveSnap.exists() };
-  } catch (error) {
-    console.error("Error checking if user saved:", error);
-    return { success: false, saved: false };
   }
 }
 
@@ -516,28 +395,34 @@ export async function addCommentV2({
   content: string 
 }) {
   try {
-    const commentsRef = collection(db, "careerExperienceComments");
+    const commentId = uuidv4();
+    const now = FieldValue.serverTimestamp();
     
     const newComment = {
+      id: commentId,
       experienceId,
       userId,
       userName,
       content,
-      createdAt: FieldValue.serverTimestamp()
+      createdAt: now
     };
     
-    const docRef = await addDoc(commentsRef, newComment);
+    // Use Admin SDK
+    await db.collection("careerExperienceComments").doc(commentId).set(newComment);
     
     // Update the comment count on the experience
-    const experienceRef = doc(db, "careerExperience", experienceId);
-    await updateDoc(experienceRef, {
+    const experienceRef = db.collection("careerExperience").doc(experienceId);
+    await experienceRef.update({
       commentsCount: FieldValue.increment(1)
     });
+    
+    // Revalidate paths
+    revalidatePath('/career');
+    revalidatePath(`/career/${experienceId}`);
     
     return { 
       success: true, 
       data: { 
-        id: docRef.id, 
         ...newComment, 
         createdAt: new Date().toISOString() 
       } 
@@ -551,18 +436,19 @@ export async function addCommentV2({
 // Function to get all comments for a post
 export async function getCommentsV2(experienceId: string) {
   try {
-    const commentsQuery = query(
-      collection(db, "careerExperienceComments"),
-      where("experienceId", "==", experienceId),
-      orderBy("createdAt", "desc")
-    );
+    // Use Admin SDK
+    const commentsSnapshot = await db.collection("careerExperienceComments")
+      .where("experienceId", "==", experienceId)
+      .orderBy("createdAt", "desc")
+      .get();
     
-    const commentsSnapshot = await getDocs(commentsQuery);
-    const comments = commentsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate().toISOString() || new Date().toISOString()
-    }));
+    const comments = commentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...serializeFirestoreData(data)
+      };
+    });
     
     return { success: true, data: comments };
   } catch (error) {

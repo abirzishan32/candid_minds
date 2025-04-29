@@ -129,7 +129,7 @@ export default function WorkExperienceForm() {
                   value={experience.location}
                   onChange={(e) => handleChange(experience.id, "location", e.target.value)}
                   className="w-full p-2 border border-gray-700 rounded-md bg-gray-800 text-white placeholder-gray-500"
-                  placeholder="New York, NY"
+                  placeholder="Dhaka, Bangladesh"
                 />
               </div>
             </div>

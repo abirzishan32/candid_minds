@@ -71,7 +71,7 @@ export default function GeneralInfoForm() {
               value={generalInfo.phone}
               onChange={handleChange}
               className="w-full p-2 pl-9 border border-gray-700 rounded-md bg-gray-800 text-white placeholder-gray-500"
-              placeholder="+1 (555) 123-4567"
+              placeholder="+8801XXXXXXXXX"
             />
             <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           </div>
@@ -87,7 +87,7 @@ export default function GeneralInfoForm() {
             value={generalInfo.location}
             onChange={handleChange}
             className="w-full p-2 pl-9 border border-gray-700 rounded-md bg-gray-800 text-white placeholder-gray-500"
-            placeholder="New York, NY"
+            placeholder="Dhaka, Bangladesh"
           />
           <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
         </div>
