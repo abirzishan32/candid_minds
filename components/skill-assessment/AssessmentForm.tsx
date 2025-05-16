@@ -53,14 +53,16 @@ export default function AssessmentForm({ assessment, onSuccess }: AssessmentForm
     try {
       setIsSubmitting(true);
       const assessmentData = {
-        ...data,
+        title: data.title,
+        description: data.description,
+        longDescription: data.longDescription || "",
+        category: data.category,
+        difficulty: data.difficulty,
+        duration: data.duration,
+        passPercentage: data.passPercentage,
         tags: data.tags || [],
-        questions: [],
-        questionsCount: 0,
-        popularity: 1,
-        completions: 0,
-        averageScore: 0,
-        isPublished: false
+        prerequisites: data.prerequisites || [],
+        skills: data.skills || []
       };
 
       if (assessment) {
@@ -206,27 +208,24 @@ export default function AssessmentForm({ assessment, onSuccess }: AssessmentForm
               type="checkbox"
               checked={assessment.isPublished}
               onChange={() => {
-                // This is handled by the parent component
                 if (onSuccess) {
                   onSuccess();
                 }
               }}
               className="sr-only"
             />
-            <div className={`relative w-10 h-5 transition rounded-full ${
-              assessment.isPublished ? 'bg-blue-500' : 'bg-gray-600'
-            }`}>
-              <div className={`absolute left-0 w-5 h-5 transition transform bg-white rounded-full ${
-                assessment.isPublished ? 'translate-x-5' : 'translate-x-0'
-              }`}></div>
+            <div className={`relative w-10 h-5 transition rounded-full ${assessment.isPublished ? 'bg-blue-500' : 'bg-gray-600'
+              }`}>
+              <div className={`absolute left-0 w-5 h-5 transition transform bg-white rounded-full ${assessment.isPublished ? 'translate-x-5' : 'translate-x-0'
+                }`}></div>
             </div>
             <span className="ml-3 text-sm font-medium text-gray-300">
               {assessment.isPublished ? "Published" : "Draft"}
             </span>
           </label>
           <span className="ml-2 text-xs text-gray-500">
-            {assessment.isPublished 
-              ? "Assessment is visible to users" 
+            {assessment.isPublished
+              ? "Assessment is visible to users"
               : "Assessment is only visible to admins"}
           </span>
         </div>
