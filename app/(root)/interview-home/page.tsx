@@ -27,7 +27,7 @@ const Page = async ({ searchParams }: PageProps) => {
     const [userInterviews, latestInterviews, companyInterviews] = isAuthenticated
         ? await Promise.all([
             getInterviewByUserId(user?.id!),
-            getLatestInterviews({userId: user?.id!}),
+            getLatestInterviews({ userId: user?.id! }),
             getCompanyInterviews()
         ])
         : [[], [], []];
@@ -62,15 +62,14 @@ const Page = async ({ searchParams }: PageProps) => {
                     </p>
                 </div>
             )}
-            
-            <section className="card-cta rounded-2xl bg-gradient-to-br from-gray-950 to-black p-8 border border-gray-800 shadow-lg backdrop-blur-sm">
-                <div className="flex flex-col gap-6 max-w-lg">
-                    <h2 className="text-3xl font-bold text-white">
-                        Get <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Interview-Ready</span> with AI-Powered Practice
-                    </h2>
 
-                    <p className="text-lg text-gray-400">
-                        Practice real interview questions & get instant feedback!
+            <section className="card-cta rounded-2xl bg-gradient-to-br from-gray-950 to-black p-8 border border-gray-800 shadow-lg backdrop-blur-sm">
+                <div className="flex flex-col gap-6 items-center">
+                    <h2 className="text-3xl font-bold text-white leading-tight">
+                        Get Interview-Ready with our <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">AI-Powered</span> Voice Agents!
+                    </h2>
+                    <p className="text-lg text-gray-400 leading-tight">
+                        Our AI-powered voice agents are here to help you ace your interviews! Practice with our realistic interview simulations and get personalized feedback to improve your performance. Whether you're preparing for a technical or behavioral interview, we've got you covered.
                     </p>
 
                     <div className="flex flex-wrap gap-4">
@@ -81,7 +80,7 @@ const Page = async ({ searchParams }: PageProps) => {
                                         hover:shadow-primary/20 hover:-translate-y-1">
                             <div className="flex items-center gap-2">
                                 Create an Interview
-                                <span className="group-hover:translate-x-1 transition-transform">→</span>
+
                             </div>
                         </AuthCheck>
 
@@ -98,16 +97,7 @@ const Page = async ({ searchParams }: PageProps) => {
                     </div>
                 </div>
 
-                <div className="relative">
-                    <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
-                    <Image
-                        src="/robot.png"
-                        alt="robot"
-                        width={400}
-                        height={400}
-                        className="max-sm:hidden drop-shadow-xl hover:scale-105 transition-transform duration-500"
-                    />
-                </div>
+
             </section>
 
             {/* Company Interviews Section */}

@@ -57,7 +57,7 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ 
+      whileHover={{
         scale: 1.02,
         boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
       }}
@@ -68,7 +68,7 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
       {/* Decorative background elements */}
       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-800 to-transparent rounded-bl-full opacity-50"></div>
       <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-gray-800 to-transparent rounded-tr-full opacity-30"></div>
-      
+
       {/* Top category badge */}
       <div className="absolute top-4 left-4">
         <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${categoryColors[assessment.category]} shadow-lg`}>
@@ -76,12 +76,12 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
           <span className="text-xs font-semibold tracking-wide uppercase">{assessment.category}</span>
         </div>
       </div>
-      
+
       {/* Card content */}
       <div className="p-6 pt-16">
         <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{assessment.title}</h3>
         <p className="text-gray-300 text-sm mb-5 line-clamp-2">{assessment.description}</p>
-        
+
         {/* Stats grid */}
         <div className="grid grid-cols-3 gap-2 mb-6">
           <div className="bg-gray-800/50 rounded-lg p-2 text-center backdrop-blur-sm">
@@ -91,7 +91,7 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
             <div className="text-white font-medium text-sm">{assessment.questionsCount}</div>
             <div className="text-gray-400 text-xs">Questions</div>
           </div>
-          
+
           <div className="bg-gray-800/50 rounded-lg p-2 text-center backdrop-blur-sm">
             <div className="flex justify-center mb-1">
               <MdTimer className="w-5 h-5 text-purple-400" />
@@ -99,7 +99,7 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
             <div className="text-white font-medium text-sm">{assessment.duration}</div>
             <div className="text-gray-400 text-xs">Minutes</div>
           </div>
-          
+
           <div className="bg-gray-800/50 rounded-lg p-2 text-center backdrop-blur-sm">
             <div className="flex justify-center mb-1">
               <FaFire className="w-5 h-5 text-orange-400" />
@@ -112,15 +112,15 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
             <div className="text-gray-400 text-xs">Popularity</div>
           </div>
         </div>
-        
+
         {/* Bottom footer */}
         <div className="flex items-center justify-between">
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${difficultyColors[assessment.difficulty]}`}>
             {difficultyDots[assessment.difficulty]}
             <span className="text-xs font-medium">{assessment.difficulty}</span>
           </div>
-          
-          <motion.div 
+
+          <motion.div
             className="h-8 w-8 flex items-center justify-center rounded-full bg-blue-600 text-white opacity-0 group-hover:opacity-100"
             whileHover={{ scale: 1.1 }}
             initial={{ x: 10 }}
@@ -131,9 +131,9 @@ const SkillAssessmentCard = ({ assessment }: { assessment: SkillAssessment }) =>
           </motion.div>
         </div>
       </div>
-      
+
       {/* Bottom highlight on hover */}
-      <motion.div 
+      <motion.div
         className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"
         initial={{ scaleX: 0 }}
         whileHover={{ scaleX: 1 }}
@@ -165,11 +165,10 @@ const SkillCategorySelector = ({
           onClick={() => onSelectCategory(category)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className={`px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200 shadow-lg ${
-            selectedCategory === category
+          className={`px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200 shadow-lg ${selectedCategory === category
               ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white"
               : "bg-gray-800 text-gray-300 hover:bg-gray-750 border border-gray-700"
-          }`}
+            }`}
         >
           {category === "All" ? "All Categories" : category}
         </motion.button>
@@ -213,7 +212,7 @@ export default function SkillAssessmentPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 p-8">
+      <div className="p-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-800 rounded w-1/4"></div>
@@ -231,7 +230,7 @@ export default function SkillAssessmentPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 p-8">
+      <div className="p-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-red-500 text-center py-8">{error}</div>
         </div>
@@ -240,13 +239,18 @@ export default function SkillAssessmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
+    <div className="p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Skill Assessments</h1>
-          <p className="text-gray-400">
-            Test your knowledge and improve your skills with our comprehensive assessments
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-400 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
+            Skill Assessments
+          </h1>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            Test your knowledge and improve your skills with our comprehensive
+            <span className="text-blue-300"> AI-powered </span>
+            assessments
           </p>
+          <div className="mt-2 w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto"></div>
         </div>
 
         <SkillCategorySelector
