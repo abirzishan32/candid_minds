@@ -185,3 +185,17 @@ interface CreateModeratorApplicationParams {
   verificationDocumentURL?: string;
   reason: string;
 }
+
+
+interface LeetCodeInterview {
+  id?: string;         
+  type: string;  
+  problemTitle: string;
+  problemDifficulty: string;
+  problemSlug: string;
+  language: string;
+  questions: string[];
+  userId: string;
+  finalized: boolean;
+  createdAt: string;
+}

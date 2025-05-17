@@ -10,9 +10,8 @@ import { SkillAssessment, AssessmentQuestion } from "@/lib/actions/skill-assessm
 import EyeTrackingProctor from "@/components/skill-assessment/EyeTrackingProctor";
 import ProctorConsentModal from "@/components/skill-assessment/ProctorConsentModal";
 import DisqualificationScreen from "@/components/skill-assessment/DisqualificationScreen";
-import { useSession } from "next-auth/react";
+import { getCurrentUser } from "@/lib/actions/auth.action";
 import { generateStudyRecommendationsAgent } from "@/lib/actions/assessment-ai.action";
-import { Session } from "next-auth";
 
 // Assessment status types
 type AssessmentStatus = "intro" | "in-progress" | "results" | "disqualified";
@@ -41,7 +40,7 @@ type AssessmentResult = {
 
 export default function AssessmentPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const [session, setSession] = useState<any>(null);
   const [assessment, setAssessment] = useState<SkillAssessment | null>(null);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

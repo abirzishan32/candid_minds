@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.5",
+    "@codingsnack/leetcode-api": "^0.0.5",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
