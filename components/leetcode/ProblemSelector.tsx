@@ -44,7 +44,7 @@ export default function ProblemSelector() {
       setCurrentPage(1); // Reset to first page when searching
       
       try {
-        const response = await fetch(`/api/leetcode?action=search&query=${encodeURIComponent(searchQuery)}&limit=${pageSize}`);
+        const response = await fetch(`/api/leetcode/voice?action=search&query=${encodeURIComponent(searchQuery)}&limit=${pageSize}`);
         const data = await response.json();
         console.log("Search response:", data);
         
@@ -92,7 +92,7 @@ export default function ProblemSelector() {
       setLoading(true);
       try {
         const skip = (currentPage - 1) * pageSize;
-        const response = await fetch(`/api/leetcode?action=get-all&limit=${pageSize}&skip=${skip}`);
+        const response = await fetch(`/api/leetcode/voice?action=get-all&limit=${pageSize}&skip=${skip}`);
         const data = await response.json();
         
         if (data.success) {
@@ -125,7 +125,7 @@ export default function ProblemSelector() {
     setLoading(true);
     try {
       const skip = (currentPage - 1) * pageSize;
-      const response = await fetch(`/api/leetcode?action=search&query=${encodeURIComponent(searchQuery)}&limit=${pageSize}&skip=${skip}`);
+      const response = await fetch(`/api/leetcode/voice?action=search&query=${encodeURIComponent(searchQuery)}&limit=${pageSize}&skip=${skip}`);
       const data = await response.json();
       
       if (data.success) {
