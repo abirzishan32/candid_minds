@@ -3,20 +3,20 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { vapi } from '@/lib/vapi.sdk';
+import { useEffect, useState, useRef } from "react";
 import { Button } from "../ui/button";
-import { difficultyColors, leetcodeInterviewer } from "@/constants/leetcode";
+import { difficultyColors } from "@/constants/leetcode";
+// Import the speech-to-text package
+import SpeechToText from "speech-to-text";
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
-    CONNECTING = 'CONNECTING',
     ACTIVE = 'ACTIVE',
     FINISHED = 'FINISHED',
 }
 
-interface SavedMessage {
-    role: 'user' | 'system' | 'assistant';
+interface Message {
+    role: 'user' | 'assistant';
     content: string;
 }
 
@@ -39,54 +39,124 @@ const LeetCodeVoiceAgent = ({
 }: LeetCodeVoiceAgentProps) => {
     const router = useRouter();
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isListening, setIsListening] = useState(false);
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
-    const [messages, setMessages] = useState<SavedMessage[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [elapsedTime, setElapsedTime] = useState<number>(0);
     const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
     const [questions, setQuestions] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [userResponse, setUserResponse] = useState('');
+    const [feedback, setFeedback] = useState('');
+    const [interimText, setInterimText] = useState('');
+    const [finalisedTexts, setFinalisedTexts] = useState<string[]>([]);
+
+    // Speech synthesis and recognition
+    const synth = useRef<SpeechSynthesis | null>(null);
+    const speechToTextRef = useRef<any>(null);
 
     // Get difficulty styling from constants
-    const difficultyStyle = difficultyColors[problemDifficulty as keyof typeof difficultyColors] || 
+    const difficultyStyle = difficultyColors[problemDifficulty as keyof typeof difficultyColors] ||
         { bg: "bg-gray-700", text: "text-gray-100" };
 
-    // Fetch questions for this leetcode problem
+    // Setup Web Speech API for speech synthesis
+    useEffect(() => {
+        // Initialize speech synthesis
+        if (typeof window !== 'undefined') {
+            synth.current = window.speechSynthesis;
+
+            // Define the callbacks for speech-to-text
+            const onAnythingSaid = (text: string) => {
+                setInterimText(text);
+            };
+
+            const onEndEvent = () => {
+                setIsListening(false);
+                // Auto restart if we were in listening mode
+                if (isListening) {
+                    setTimeout(() => {
+                        try {
+                            speechToTextRef.current?.startListening();
+                            setIsListening(true);
+                        } catch (err) {
+                            console.error("Error restarting speech recognition:", err);
+                        }
+                    }, 300);
+                }
+            };
+
+            const onFinalised = (text: string) => {
+                console.log("Finalised text:", text);
+                setFinalisedTexts(prev => [text, ...prev]);
+                setInterimText('');
+                addUserMessage(text);
+            };
+
+            try {
+                // Create the speech recognition listener with the correct callbacks
+                speechToTextRef.current = new SpeechToText(
+                    onFinalised,
+                    onEndEvent,
+                    onAnythingSaid,
+                    'en-US' // Language
+                );
+            } catch (err) {
+                console.error('Error initializing speech-to-text:', err);
+                setError(typeof err === 'object' && err !== null ?
+                    (err as Error).message :
+                    'Speech recognition could not be initialized. Please check your browser compatibility.');
+            }
+        }
+
+        return () => {
+            // Cleanup
+            if (speechToTextRef.current) {
+                try {
+                    if (isListening) {
+                        speechToTextRef.current.stopListening();
+                    }
+                } catch (e) {
+                    console.log('Error stopping speech to text:', e);
+                }
+            }
+
+            if (synth.current) {
+                synth.current.cancel();
+            }
+        };
+    }, []);
+
+
+    // Fetch questions from Firestore
     useEffect(() => {
         const fetchQuestions = async () => {
             try {
                 setLoading(true);
-
-                // First, try to get existing questions
                 const response = await fetch(`/api/vapi/leetcode?slug=${problemSlug}`);
 
-                // Check if response is OK before trying to parse JSON
                 if (response.ok) {
                     const data = await response.json();
 
                     if (data.success) {
-                        // Found existing questions
                         setQuestions(data.data.questions);
                         console.log("Found existing questions for", problemSlug);
                         setError(null);
                     } else {
-                        // This shouldn't happen if response is OK, but just in case
                         throw new Error(data.error || 'Failed to fetch questions');
                     }
                 } else {
-                    // If not found (404), this is expected - we'll generate new ones in handleCall
                     if (response.status === 404) {
-                        console.log("No existing questions found - will generate on interview start");
-                        setError(null);
+                        // Generate questions if none exist
+                        await generateQuestions();
                     } else {
-                        // For other error status codes, throw an error
                         throw new Error(`API returned ${response.status}: ${response.statusText}`);
                     }
                 }
             } catch (err: any) {
                 console.error('Error fetching questions:', err);
-                // Don't show an error to the user here - we'll generate questions when they click Start Interview
-                console.log('Will attempt to generate questions on interview start');
+                setError('Failed to load interview questions. Please try again.');
             } finally {
                 setLoading(false);
             }
@@ -95,88 +165,9 @@ const LeetCodeVoiceAgent = ({
         fetchQuestions();
     }, [problemSlug, language, userId]);
 
-    useEffect(() => {
-        const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
-        const onCallEnd = () => setCallStatus(CallStatus.FINISHED);
-
-        const onMessage = (message: any) => {
-            if (message.type === 'transcript' && message.transcriptType === 'final') {
-                const newMessage = {
-                    role: message.role as 'user' | 'system' | 'assistant',
-                    content: message.transcript
-                };
-                setMessages((prev) => [...prev, newMessage]);
-            }
-        }
-
-        const onSpeechStart = () => setIsSpeaking(true);
-        const onSpeechEnd = () => setIsSpeaking(false);
-
-        const onError = (error: Error) => {
-            console.log('Error', error);
-            setError(error.message || 'An error occurred during the interview');
-        };
-
-        vapi.on('call-start', onCallStart);
-        vapi.on('call-end', onCallEnd);
-        vapi.on('message', onMessage);
-        vapi.on('speech-start', onSpeechStart);
-        vapi.on('speech-end', onSpeechEnd);
-        vapi.on('error', onError);
-
-        return () => {
-            vapi.off('call-start', onCallStart);
-            vapi.off('call-end', onCallEnd);
-            vapi.off('message', onMessage);
-            vapi.off('speech-start', onSpeechStart);
-            vapi.off('speech-end', onSpeechEnd);
-            vapi.off('error', onError);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (callStatus === CallStatus.ACTIVE) {
-            const intervalId = setInterval(() => {
-                setElapsedTime(prevTime => prevTime + 1);
-            }, 1000);
-            setTimerId(intervalId);
-        } else if (callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE) {
-            if (timerId) {
-                clearInterval(timerId);
-                setTimerId(null);
-            }
-
-            if (callStatus === CallStatus.INACTIVE) {
-                setElapsedTime(0);
-            }
-        }
-
-        return () => {
-            if (timerId) {
-                clearInterval(timerId);
-            }
-        };
-    }, [callStatus]);
-
-    const formatTime = (seconds: number): string => {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    };
-
-    useEffect(() => {
-        if (callStatus === CallStatus.FINISHED) {
-            router.push(`/leetcode-qna?completed=true`);
-        }
-    }, [callStatus, router]);
-
-    const handleCall = async () => {
-        setCallStatus(CallStatus.CONNECTING);
-        setElapsedTime(0);
-        setError(null);
-
+    // Generate questions if not found
+    const generateQuestions = async () => {
         try {
-            // Always try to generate or fetch questions before starting the interview
             const genResponse = await fetch('/api/vapi/leetcode', {
                 method: 'POST',
                 headers: {
@@ -190,89 +181,248 @@ const LeetCodeVoiceAgent = ({
             });
 
             if (!genResponse.ok) {
-                throw new Error(`Failed to prepare interview: ${genResponse.status}`);
+                throw new Error(`Failed to generate questions: ${genResponse.status}`);
             }
 
             const genData = await genResponse.json();
 
-            if (!genData.success) {
-                throw new Error(genData.error || 'Failed to prepare interview');
+            if (genData.success) {
+                const interviewQuestions = genData.interview?.questions || [];
+                setQuestions(interviewQuestions);
+                console.log("Generated new questions for", problemSlug);
+            } else {
+                throw new Error(genData.error || 'Failed to generate questions');
             }
-
-            // Now we have questions, either from DB or newly generated
-            const interviewQuestions = genData.interview?.questions || [];
-            setQuestions(interviewQuestions);
-
-            if (interviewQuestions.length === 0) {
-                throw new Error('No questions were generated for the interview');
-            }
-
-            // Format questions for the interviewer
-            const formattedQuestions = interviewQuestions.map((q: string, i: number) => `${i+1}. ${q}`).join('\n');
-
-// Create a system prompt with interview details
-const systemPrompt = `You are a technical interviewer specializing in LeetCode problems. You're conducting an interview about the problem "${problemTitle}" (${problemDifficulty} difficulty).
-                
-Your goal is to evaluate the candidate's:
-- Understanding of the problem
-- Solution approach and algorithm design
-- Time and space complexity analysis
-- Edge case handling
-- Code implementation knowledge in ${language}
-
-Ask these questions one by one, listening carefully to the candidate's responses:
-${formattedQuestions}
-
-Guidelines:
-- Start by introducing yourself and mentioning the problem.
-- Ask one question at a time and wait for a response.
-- Provide specific, constructive feedback after each answer.
-- Be technically precise but encouraging.
-- If the candidate is struggling, offer hints without giving full solutions.
-- At the end, provide a summary of their performance with specific strengths and areas for improvement.`;
-
-            // Start conversation with direct assistant message
-           await vapi.start({
-    // Voice configuration
-    voice: {
-        provider: "11labs", 
-        voiceId: "echo", // Professional voice
-    },
-    // Model configuration
-    model: {
-        provider: "openai",
-        model: "gpt-4", // Good for technical content
-        messages: [
-            {
-                role: "system",
-                content: systemPrompt
-            }
-        ]
-    },
-    // Transcription configuration
-    transcriber: {
-        provider: "deepgram",
-        model: "nova-2",
-        language: "en",
-    },
-    // First message to say
-    firstMessage: `Hello ${userName}, I'll be conducting your LeetCode interview on the "${problemTitle}" problem today. Let's start with some questions to evaluate your approach to solving this ${problemDifficulty} level problem in ${language}. Are you ready?`
-});
-            
         } catch (err: any) {
-            console.error("Error starting LeetCode interview:", err);
-            setError(err.message || "Failed to start interview");
-            setCallStatus(CallStatus.INACTIVE);
+            console.error('Error generating questions:', err);
+            throw err; // Re-throw to be caught by the caller
         }
     };
 
-    const handleDisconnect = async () => {
-        setCallStatus(CallStatus.FINISHED);
-        vapi.stop();
+    // Timer effect
+    useEffect(() => {
+        if (callStatus === CallStatus.ACTIVE) {
+            const intervalId = setInterval(() => {
+                setElapsedTime(prevTime => prevTime + 1);
+            }, 1000);
+            setTimerId(intervalId);
+        } else {
+            if (timerId) {
+                clearInterval(timerId);
+                setTimerId(null);
+            }
+
+            if (callStatus === CallStatus.INACTIVE) {
+                setElapsedTime(0);
+            }
+        }
+
+        return () => {
+            if (timerId) clearInterval(timerId);
+        };
+    }, [callStatus]);
+
+    // Format time display
+    const formatTime = (seconds: number): string => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
-    const latestMessage = messages[messages.length - 1]?.content;
-    const isCallInactiveOrFinished = callStatus === CallStatus.INACTIVE || callStatus === CallStatus.FINISHED;
+    // Redirect after interview finished
+    useEffect(() => {
+        if (callStatus === CallStatus.FINISHED) {
+            router.push(`/leetcode-qna?completed=true`);
+        }
+    }, [callStatus, router]);
+
+    // Speak text using Web Speech API
+    const speakText = (text: string) => {
+        if (synth.current) {
+            // Make sure we're not listening while speaking
+            stopListening();
+
+            // Cancel any ongoing speech
+            synth.current.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            // Find a good voice (preferably female)
+            const voices = synth.current.getVoices();
+            const preferredVoice = voices.find(voice =>
+                voice.name.includes('Samantha') || // macOS female voice
+                voice.name.includes('Google UK English Female') ||
+                voice.name.includes('Microsoft Zira')
+            );
+
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+
+            // Events
+            setIsSpeaking(true);
+
+            utterance.onend = () => {
+                setIsSpeaking(false);
+            };
+
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                setIsSpeaking(false);
+            };
+
+            synth.current.speak(utterance);
+        } else {
+            console.error('Speech synthesis not available');
+        }
+    };
+
+    // Start listening for user response
+    const startListening = () => {
+        if (speechToTextRef.current) {
+            try {
+                // Clear any existing interim text
+                setInterimText('');
+
+                // Start listening
+                speechToTextRef.current.startListening();
+                setIsListening(true);
+            } catch (err) {
+                console.error('Error starting speech recognition:', err);
+                setError('Failed to start speech recognition. Please try again.');
+            }
+        } else {
+            setError('Speech recognition is not available in this browser.');
+        }
+    };
+
+
+    // Stop listening
+    const stopListening = () => {
+        if (speechToTextRef.current && isListening) {
+            try {
+                speechToTextRef.current.stopListening();
+                setIsListening(false);
+            } catch (err) {
+                console.error('Error stopping speech recognition:', err);
+            }
+        }
+    };
+
+    // Handle the "Speak" button click
+    const handleSpeakButtonClick = () => {
+        if (isListening) {
+            stopListening();
+        } else {
+            startListening();
+        }
+    };
+
+    // Add assistant message to the conversation
+    const addAssistantMessage = (text: string) => {
+        const newMessage: Message = { role: 'assistant', content: text };
+        setMessages(prev => [...prev, newMessage]);
+        speakText(text);
+    };
+
+    // Add user message to the conversation
+    const addUserMessage = (text: string) => {
+        if (!text.trim()) return; // Don't add empty messages
+
+        const newMessage: Message = { role: 'user', content: text };
+        setMessages(prev => [...prev, newMessage]);
+        setUserResponse(text);
+
+        // Stop listening after capturing response
+        stopListening();
+
+        // Generate simple feedback
+        setTimeout(() => {
+            const feedback = generateSimpleFeedback();
+            setFeedback(feedback);
+            addAssistantMessage(feedback);
+
+            // Proceed to next question after feedback
+            setTimeout(() => {
+                proceedToNextQuestion();
+            }, 3000);
+        }, 1000);
+    };
+
+    // Generate a simple feedback response
+    const generateSimpleFeedback = () => {
+        const feedbackOptions = [
+            "Thanks for your answer. That's an interesting approach.",
+            "Good thinking. Let's move on to the next question.",
+            "I see your point. That's a valid approach to consider.",
+            "Thanks for explaining your thought process.",
+            "That's helpful information. Let's continue with the next question."
+        ];
+
+        return feedbackOptions[Math.floor(Math.random() * feedbackOptions.length)];
+    };
+
+    // Proceed to next question
+    const proceedToNextQuestion = () => {
+        if (currentQuestionIndex < questions.length - 1) {
+            // Move to next question
+            const nextIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(nextIndex);
+
+            // Reset user response
+            setUserResponse('');
+            setFeedback('');
+
+            // Ask the next question with a slight delay
+            setTimeout(() => {
+                addAssistantMessage(questions[nextIndex]);
+            }, 1000);
+        } else {
+            // All questions have been asked
+            setTimeout(() => {
+                addAssistantMessage("That concludes our interview. Thank you for your responses. You did well overall.");
+
+                // End interview after final message
+                setTimeout(() => {
+                    handleEndInterview();
+                }, 5000);
+            }, 2000);
+        }
+    };
+
+    // Start interview
+    const handleStartInterview = () => {
+        setCallStatus(CallStatus.ACTIVE);
+        setMessages([]);
+        setCurrentQuestionIndex(0);
+        setUserResponse('');
+        setFeedback('');
+
+        // Introduction message
+        const intro = `Hello ${userName}, I'll be conducting your LeetCode interview on the "${problemTitle}" problem today. Let's start with some questions to evaluate your approach to solving this ${problemDifficulty} level problem in ${language}.`;
+
+        addAssistantMessage(intro);
+
+        // First question after intro (with delay)
+        setTimeout(() => {
+            if (questions.length > 0) {
+                addAssistantMessage(questions[0]);
+            }
+        }, 5000);
+    };
+
+    // End interview
+    const handleEndInterview = () => {
+        stopListening();
+        if (synth.current) synth.current.cancel();
+        setCallStatus(CallStatus.FINISHED);
+    };
+
+    // Get the latest message for display
+    const latestMessage = messages[messages.length - 1]?.content || '';
 
     if (loading) {
         return (
@@ -283,7 +433,7 @@ Guidelines:
         );
     }
 
-    if (error && callStatus === CallStatus.INACTIVE) {
+    if (error) {
         return (
             <div className="bg-red-900/30 border border-red-700 p-6 rounded-lg text-center">
                 <h3 className="text-xl font-bold text-white mb-3">Error</h3>
@@ -338,29 +488,43 @@ Guidelines:
 
                     <div className="flex flex-col items-center">
                         <div className="relative">
-                            <div className="absolute -inset-1 bg-primary-100/20 rounded-full blur-md"></div>
+                            <div className={`absolute -inset-1 ${isListening ? 'bg-blue-500/30 animate-pulse' : 'bg-primary-100/20'} rounded-full blur-md transition-all duration-300`}></div>
                             <div className="relative size-20 rounded-full overflow-hidden border-2 border-gray-700 shadow-lg">
                                 <Image
-                                    src="/avatar-placeholder.png" // Fixed image path to use default avatar 
+                                    src="/avatar-placeholder.png"
                                     alt="user avatar"
                                     width={80}
                                     height={80}
                                     className="rounded-full object-cover"
                                 />
                             </div>
-                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                            <div className={`absolute bottom-0 right-0 w-4 h-4 ${isListening ? 'bg-blue-500' : 'bg-green-500'} rounded-full border-2 border-gray-900`}></div>
                         </div>
                         <h4 className="text-white text-sm mt-3 font-medium">{userName}</h4>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-black bg-opacity-60 backdrop-blur-sm border border-gray-800 rounded-xl p-5 shadow-lg min-h-[120px] transition-all duration-500 hover:border-gray-700">
-                <div className="transcript min-h-[100px]">
+            <div className="bg-black bg-opacity-60 backdrop-blur-sm border border-gray-800 rounded-xl p-5 shadow-lg min-h-[200px] transition-all duration-500 hover:border-gray-700">
+                <div className="transcript min-h-[100px] mb-4">
                     {messages.length > 0 ? (
-                        <p key={latestMessage} className={cn('transition-opacity duration-500 opacity-0 text-white', 'animate-fadeIn opacity-100')}>
-                            {latestMessage}
-                        </p>
+                        <div className="space-y-4">
+                            {/* Show the latest message */}
+                            <div className={`${messages[messages.length - 1].role === 'assistant' ? 'bg-gray-800/50' : 'bg-blue-900/30'} p-3 rounded-lg`}>
+                                <p className="text-sm text-gray-400 mb-1">
+                                    {messages[messages.length - 1].role === 'assistant' ? 'AI Interviewer' : userName}:
+                                </p>
+                                <p className="text-white">{messages[messages.length - 1].content}</p>
+                            </div>
+
+                            {/* Show interim text while user is speaking */}
+                            {isListening && interimText && (
+                                <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30">
+                                    <p className="text-sm text-gray-400 mb-1">{userName} (speaking):</p>
+                                    <p className="text-blue-200 italic">{interimText}</p>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <p className="text-gray-500 italic text-center">
                             {callStatus === CallStatus.ACTIVE
@@ -369,41 +533,90 @@ Guidelines:
                         </p>
                     )}
                 </div>
+
+                {/* Microphone status and "Speak Now" button */}
+                {callStatus === CallStatus.ACTIVE && (
+                    <div className="flex items-center justify-center flex-col space-y-4">
+                        <div className={`text-center text-sm ${isListening ? 'text-blue-400' : 'text-gray-500'}`}>
+                            {isListening ? (
+                                <div className="flex items-center justify-center">
+                                    <span className="animate-pulse mr-2">●</span> Listening...
+                                </div>
+                            ) : isSpeaking ? (
+                                <div>AI is speaking...</div>
+                            ) : (
+                                <div>Click "Speak" to answer</div>
+                            )}
+                        </div>
+
+                        {/* Speak Now button - only show when AI isn't speaking */}
+                        {!isSpeaking && (
+                            <Button
+                                className={`rounded-full px-6 py-2 shadow-lg transition-all duration-300 ${isListening
+                                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    }`}
+                                onClick={handleSpeakButtonClick}
+                            >
+                                {isListening ? 'Stop' : 'Speak Now'}
+                            </Button>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="w-full flex justify-center mt-6">
                 {callStatus !== CallStatus.ACTIVE ? (
-                    <button
+                    <Button
                         className="relative px-8 py-3 bg-gradient-to-r from-primary-100 to-primary-200 text-black font-bold rounded-lg shadow-lg hover:shadow-primary-100/30 transition-all duration-300 transform hover:-translate-y-1"
-                        onClick={handleCall}
-                        disabled={loading}
+                        onClick={handleStartInterview}
+                        disabled={loading || questions.length === 0}
                     >
-                        <span className={cn('absolute inset-0 rounded-lg bg-primary-100/50 animate-ping opacity-75', callStatus !== CallStatus.CONNECTING && 'hidden')} />
-                        <span>
-                            {isCallInactiveOrFinished ? 'Start LeetCode Interview' : 'Connecting...'}
-                        </span>
-                    </button>
+                        Start LeetCode Interview
+                    </Button>
                 ) : (
-                    <button
+                    <Button
                         className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-lg hover:shadow-red-600/30 transition-all duration-300 transform hover:-translate-y-1"
-                        onClick={handleDisconnect}
+                        onClick={handleEndInterview}
                     >
                         End Interview
-                    </button>
+                    </Button>
                 )}
             </div>
 
             {questions.length > 0 && (
                 <div className="mt-8 bg-gray-800/50 rounded-xl p-5 border border-gray-700">
-                    <h3 className="text-white font-medium mb-3">Questions for this Interview:</h3>
-                    <ul className="space-y-2 text-gray-300">
-                        {questions.map((q, index) => (
-                            <li key={index} className="flex">
-                                <span className="text-primary-100 mr-2">{index + 1}.</span>
-                                <span>{q}</span>
-                            </li>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-white font-medium">Interview Progress</h3>
+                        <p className="text-gray-400 text-sm">
+                            Question {currentQuestionIndex + 1} of {questions.length}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-center space-x-2 py-3">
+                        {questions.map((_, index) => (
+                            <div
+                                key={index}
+                                className={cn(
+                                    "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
+                                    index === currentQuestionIndex && callStatus === CallStatus.ACTIVE
+                                        ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-900"
+                                        : index < currentQuestionIndex
+                                            ? "bg-green-700/70 text-white"
+                                            : "bg-gray-700/50 text-gray-400"
+                                )}
+                            >
+                                {index + 1}
+                            </div>
                         ))}
-                    </ul>
+                    </div>
+
+                    {callStatus === CallStatus.ACTIVE && (
+                        <div className="mt-4 p-3 bg-gray-800/80 rounded-lg border border-gray-700">
+                            <p className="text-sm text-gray-400 mb-1">Current Question:</p>
+                            <p className="text-blue-300">{questions[currentQuestionIndex]}</p>
+                        </div>
+                    )}
                 </div>
             )}
         </>

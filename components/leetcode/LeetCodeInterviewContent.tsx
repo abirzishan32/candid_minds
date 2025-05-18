@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import LeetCodeVoiceAgent from '@/components/leetcode/LeetCodeVoiceAgent';
+import SimpleLeetCodeVoiceAgent from '@/components/leetcode/LeetCodeVoiceAgent';
+import { leetcodeLanguages } from '@/constants/leetcode';
 
 interface ProblemData {
   title: string;
@@ -43,10 +44,9 @@ export default function LeetCodeInterviewContent({
               onChange={(e) => setLanguage(e.target.value)}
               className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm"
             >
-              <option value="C++">C++</option>
-              <option value="Python">Python</option>
-              <option value="Java">Java</option>
-              <option value="JavaScript">JavaScript</option>
+              {leetcodeLanguages.map((lang) => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function LeetCodeInterviewContent({
         </div>
       </div>
 
-      <LeetCodeVoiceAgent
+      <SimpleLeetCodeVoiceAgent
         userName={userName}
         userId={userId}
         problemSlug={problemSlug}
