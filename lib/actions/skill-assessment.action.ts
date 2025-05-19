@@ -577,7 +577,7 @@ export async function deleteAssessmentQuestion(questionId: string, assessmentId:
       });
     }
     
-    // Revalidate the paths
+    // Revalidate the paths here
     revalidatePath(`/manage-skill-assessment/${assessmentId}`);
     revalidatePath(`/skill-assessment/${assessmentId}`);
     
