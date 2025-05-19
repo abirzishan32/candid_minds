@@ -17,8 +17,10 @@ export default function FileExplorerWrapper({
   
   const handleCreateSnippet = (folderId: string | null) => {
     // Use router.push instead of direct URL manipulation for better integration with Next.js
-    if (folderId) {
-      router.push(`${targetPath}?folderId=${folderId}`);
+    const actualFolderId = folderId || initialFolderId;
+    
+    if (actualFolderId) {
+      router.push(`${targetPath}?folderId=${actualFolderId}`);
     } else {
       router.push(targetPath);
     }

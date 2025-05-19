@@ -453,3 +453,37 @@ export async function getFolderPath(folderId: string | null) {
     return { success: false, error: "Failed to get folder path", path: [] };
   }
 }
+
+// Update this function for better folder retrieval
+
+export async function getAllUserFolders() {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return { success: false, error: "Unauthorized", folders: [] };
+    }
+    
+    const foldersQuery = db.collection("codeFolders")
+      .where("userId", "==", currentUser.id)
+      .orderBy("createdAt"); // Order by creation date to maintain order
+    
+    const foldersSnapshot = await foldersQuery.get();
+    
+    if (foldersSnapshot.empty) {
+      return { success: true, folders: [] };
+    }
+    
+    const folders = foldersSnapshot.docs.map(doc => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        ...serializeFirestoreData(data)
+      } as CodeFolder;
+    });
+    
+    return { success: true, folders };
+  } catch (error) {
+    console.error("Error getting all folders:", error);
+    return { success: false, error: "Failed to get folders", folders: [] };
+  }
+}

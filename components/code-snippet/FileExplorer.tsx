@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import FolderTree from "./FolderTree";
 import { 
-  getFoldersByParent, 
-  getSnippetsByFolder,
-  getFolderPath
+  getAllUserFolders, 
+  getSnippetsByFolder 
 } from "@/lib/actions/code-snippet.action";
 import { Button } from "@/components/ui/button";
-import { Home, Loader2 } from "lucide-react";
+import { Home, Loader2, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 export default function FileExplorer({ 
   initialFolderId = null,
@@ -19,62 +19,56 @@ export default function FileExplorer({
   onCreateSnippet: (folderId: string | null) => void;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   
   const [folders, setFolders] = useState<CodeFolder[]>([]);
   const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
-  const [currentPath, setCurrentPath] = useState<CodeFolder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Filter folders for current view
+  const currentFolders = folders.filter(folder => folder.parentId === initialFolderId);
+  // Filter snippets for current folder
+  const currentSnippets = snippets.filter(snippet => snippet.folderId === initialFolderId);
   
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Get folders
-      const foldersResult = await getFoldersByParent(currentFolderId);
+      // Get ALL user folders for proper tree display
+      const foldersResult = await getAllUserFolders();
       if (foldersResult.success) {
         setFolders(foldersResult.folders);
+      } else {
+        toast.error("Failed to load folders");
       }
       
-      // Get snippets
-      const snippetsResult = await getSnippetsByFolder(currentFolderId);
+      // Get snippets for current view
+      const snippetsResult = await getSnippetsByFolder(initialFolderId);
       if (snippetsResult.success) {
         setSnippets(snippetsResult.snippets);
-      }
-      
-      // Get folder path for breadcrumb
-      if (currentFolderId) {
-        const pathResult = await getFolderPath(currentFolderId);
-        if (pathResult.success) {
-          setCurrentPath(pathResult.path);
-        }
       } else {
-        setCurrentPath([]);
+        toast.error("Failed to load snippets");
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+      toast.error("An error occurred while loading data");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
   
-  // Watch for changes to the current folder ID
-  useEffect(() => {
-    setCurrentFolderId(initialFolderId);
-  }, [initialFolderId]);
-  
-  // Fetch data when folder changes
   useEffect(() => {
     fetchData();
-  }, [currentFolderId]);
+  }, [initialFolderId]);
   
   const handleRefresh = () => {
+    setRefreshing(true);
     fetchData();
   };
   
   return (
-    <div className="border rounded-md bg-background shadow-sm">
-      <div className="p-4 border-b flex justify-between items-center">
+    <div className="border rounded-md bg-background shadow-sm overflow-hidden">
+      <div className="p-3 border-b flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
@@ -85,15 +79,25 @@ export default function FileExplorer({
             <Home size={16} className="mr-1" />
             Root
           </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            className="h-8 w-8 p-0"
+            disabled={refreshing || loading}
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+          </Button>
         </div>
         
         <div className="text-sm text-muted-foreground">
-          {/* Total count display */}
-          {folders.length} folder{folders.length !== 1 ? 's' : ''}, {snippets.length} snippet{snippets.length !== 1 ? 's' : ''}
+          {currentFolders.length} folder{currentFolders.length !== 1 ? 's' : ''}, {currentSnippets.length} snippet{currentSnippets.length !== 1 ? 's' : ''}
         </div>
       </div>
       
-      <div className="p-2">
+      <div className="p-2 max-h-[500px] overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -103,10 +107,11 @@ export default function FileExplorer({
           <FolderTree
             folders={folders}
             snippets={snippets}
-            parentId={currentFolderId}
+            parentId={initialFolderId}
+            currentFolders={currentFolders}
+            currentSnippets={currentSnippets}
             onCreateSnippet={onCreateSnippet}
             onRefresh={handleRefresh}
-            currentPath={currentPath}
           />
         )}
       </div>

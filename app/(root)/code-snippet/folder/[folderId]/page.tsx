@@ -1,9 +1,10 @@
 import React from "react";
-import FileExplorer from "@/components/code-snippet/FileExplorer";
+import FileExplorerWrapper from "@/components/code-snippet/FileExplorerWrapper";
 import { getFolder, getFolderPath } from "@/lib/actions/code-snippet.action";
 import { Button } from "@/components/ui/button";
-import SnippetForm from "@/components/code-snippet/SnippetForm";
+import { ChevronLeft, Plus } from "lucide-react";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 export async function generateMetadata({ params }: { params: { folderId: string } }) {
   const { success, folder } = await getFolder(params.folderId);
@@ -31,53 +32,49 @@ export default async function FolderPage({ params }: { params: { folderId: strin
   
   return (
     <div className="container mx-auto py-6 max-w-6xl">
+      {/* Back button */}
+      <div className="mb-4">
+        <Link href={folder.parentId ? `/code-snippet/folder/${folder.parentId}` : "/code-snippet"}>
+          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+            <ChevronLeft size={16} />
+            Back to {folder.parentId ? "Parent Folder" : "Root"}
+          </Button>
+        </Link>
+      </div>
+      
       <h1 className="text-2xl font-bold mb-2">{folder.name}</h1>
       
       {/* Breadcrumb path */}
       <div className="text-sm text-muted-foreground mb-6">
         <span className="font-mono">
           /root
-          {folderPath.map((f, i) => (
-            <React.Fragment key={f.id}>
-              /{f.name}
-            </React.Fragment>
-          ))}
+          {folderPath.map((f) => `/${f.name}`)}
         </span>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* File Explorer */}
         <div className="lg:col-span-4">
-          <FileExplorer 
+          <FileExplorerWrapper 
             initialFolderId={params.folderId} 
-            onCreateSnippet={(folderId) => {
-              const url = new URL(window.location.href);
-              url.pathname = "/code-snippet/new";
-              url.searchParams.set("folderId", folderId || params.folderId);
-              window.location.href = url.toString();
-            }} 
+            targetPath="/code-snippet/new" 
           />
         </div>
         
         {/* Folder content */}
         <div className="lg:col-span-8">
           <div className="border rounded-md p-8 text-center flex flex-col items-center justify-center min-h-[400px] bg-background">
-            <h2 className="text-xl font-medium mb-2">{folder.name}</h2>
+            <h2 className="text-xl font-medium mb-2">Folder: {folder.name}</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Use the file explorer to browse folders and snippets. Create a new snippet in this folder.
+              Use the file explorer to browse folders and snippets, or create a new snippet in this folder.
             </p>
             
-            <Button 
-              size="lg"
-              onClick={() => {
-                const url = new URL(window.location.href);
-                url.pathname = "/code-snippet/new";
-                url.searchParams.set("folderId", params.folderId);
-                window.location.href = url.toString();
-              }}
-            >
-              Create New Snippet Here
-            </Button>
+            <Link href={`/code-snippet/new?folderId=${params.folderId}`} className="inline-block">
+              <Button size="lg" className="flex items-center">
+                <Plus size={18} className="mr-1" />
+                Create Snippet in This Folder
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
