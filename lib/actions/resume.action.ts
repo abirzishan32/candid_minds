@@ -10,6 +10,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import mammoth from "mammoth";
 import * as pdfjs from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
+import { generateText } from "ai";
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
 // Define the return type explicitly for better type safety
@@ -140,6 +141,53 @@ export async function analyzeResume(params: ResumeAnalysisParams): Promise<Analy
     }
 }
 
+
+/**
+ * Enhance resume content with AI
+ */
+export async function enhanceResumeContent(
+    content: string,
+    type: 'job' | 'project' | 'achievement',
+    metadata: Record<string, string>
+): Promise<{ success: boolean; data?: string; error?: string }> {
+    try {
+        // Check if user is authenticated
+        const isUserAuth = await isAuthenticated();
+        if (!isUserAuth) {
+            return { success: false, error: "Unauthorized" };
+        }
+
+        const response = await fetch('/api/resume/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content,
+                type,
+                ...metadata
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            return { success: true, data: result.enhancedContent };
+        } else {
+            return { success: false, error: result.error || 'Enhancement failed' };
+        }
+    } catch (error) {
+        console.error("Error enhancing content:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "An unknown error occurred"
+        };
+    }
+}
+
+
+
+
 /**
  * Extracts text from different file formats
  * Note: For production use, you'll need to install:
@@ -212,7 +260,7 @@ async function extractTextFromFile(base64Content: string, fileType: string): Pro
  */
 async function analyzeResumeWithAI(resumeText: string): Promise<ResumeAnalysisResult> {
     try {
-        // Construct the prompt for resume-checker analysis
+        // Construct the prompt for resume analysis
         const prompt = `
       You are a professional resume reviewer with expertise in helping job seekers optimize their resumes for ATS systems and hiring managers.
       
@@ -259,14 +307,44 @@ async function analyzeResumeWithAI(resumeText: string): Promise<ResumeAnalysisRe
             }),
             schema: resumeAnalysisSchema,
             prompt,
-            system: "You are a professional resume-checker reviewer with expertise in ATS optimization and resume-checker writing. Provide detailed, actionable feedback to help job seekers improve their resumes."
+            system: "You are a professional resume reviewer with expertise in ATS optimization and resume writing. Provide detailed, actionable feedback to help job seekers improve their resumes."
         });
 
-        // Return the analysis with the current timestamp
-        return {
-            ...object,
+        // Ensure all required fields are present
+        const completeObject: ResumeAnalysisResult = {
+            // Use nullish coalescing to provide default values when fields are missing
+            overallScore: object.overallScore ?? 70,
+            sectionScores: object.sectionScores ?? {},
+            sectionFeedback: object.sectionFeedback ?? {},
+            strengths: object.strengths ?? ["Professional tone", "Clear structure"],
+            improvements: Array.isArray(object.improvements)
+                ? object.improvements.map(item => ({
+                    title: item.title ?? "Improvement needed",
+                    description: item.description ?? "Add more specific details to your resume"
+                }))
+                : [{
+                    title: "Add more details",
+                    description: "Include more specific achievements"
+                }],
+
+            keywords: object.keywords ?? [],
+            missedKeywords: object.missedKeywords ?? [],
+            suggestions: Array.isArray(object.suggestions)
+                ? object.suggestions.map(item => ({
+                    title: item.title ?? "Formatting improvement",
+                    description: item.description ?? "Improve the formatting of your resume",
+                    before: item.before,
+                    after: item.after,
+                    priority: item.priority
+                }))
+                : [{
+                    title: "Improve formatting",
+                    description: "Ensure consistent formatting throughout your resume"
+                }],
             timestamp: new Date().toISOString()
         };
+
+        return completeObject;
     } catch (error) {
         console.error("AI generation error:", error);
         // Return fallback analysis if AI fails
