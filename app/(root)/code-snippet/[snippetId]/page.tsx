@@ -1,228 +1,120 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Edit, Trash, Folder, Download, Copy } from "lucide-react";
+import React from "react";
+import { getSnippet, getFolderPath } from "@/lib/actions/code-snippet.action";
+import { notFound } from "next/navigation";
+import FileExplorerWrapper from "@/components/code-snippet/FileExplorerWrapper";
+import CodeViewerClient from "@/components/code-snippet/CodeViewerClient"; 
 import { Button } from "@/components/ui/button";
+import { Pencil, ChevronLeft } from "lucide-react"; 
 import Link from "next/link";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import CodeEditor from "@/components/code-snippet/CodeEditor";
-import SnippetForm from "@/components/code-snippet/SnippetForm";
-import { getSnippet, deleteSnippet, getFolderPath } from "@/lib/actions/code-snippet.action";
+import DeleteSnippetButton from "@/components/code-snippet/DeleteSnippetButton";
 
-export default function SnippetPage() {
-  const params = useParams();
-  const router = useRouter();
-  const snippetId = params.snippetId as string;
+
+export default async function SnippetPage({ params }: { params: { snippetId: string } }) {
+  const { success, snippet } = await getSnippet(params.snippetId);
   
-  const [snippet, setSnippet] = useState<CodeSnippet | null>(null);
-  const [folderPath, setFolderPath] = useState<CodeFolder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  if (!success || !snippet) {
+    notFound();
+  }
   
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  
-  // Fetch snippet data
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const snippetResult = await getSnippet(snippetId);
-      
-      if (snippetResult.success && snippetResult.snippet) {
-        setSnippet(snippetResult.snippet);
-        
-        // If snippet has a folder, fetch the folder path
-        if (snippetResult.snippet.folderId) {
-          const pathResult = await getFolderPath(snippetResult.snippet.folderId);
-          if (pathResult.success) {
-            setFolderPath(pathResult.path);
-          }
-        }
-      } else {
-        setError(snippetResult.error || "Failed to load snippet");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  useEffect(() => {
-    fetchData();
-  }, [snippetId]);
-  
-  const handleDelete = async () => {
-    try {
-      const result = await deleteSnippet(snippetId);
-      
-      if (result.success) {
-        toast.success("Snippet deleted");
-        
-        // Navigate back to parent folder or root
-        if (snippet?.folderId) {
-          router.push(`/code-snippet/folder/${snippet.folderId}`);
-        } else {
-          router.push("/code-snippet");
-        }
-      } else {
-        toast.error(`Failed to delete: ${result.error}`);
-      }
-    } catch (error) {
-      toast.error("An error occurred while deleting");
-    } finally {
-      setIsDeleteOpen(false);
-    }
-  };
-  
-  // Format the date to be more readable
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString();
-  };
+
+  const folderPath = snippet.folderId 
+    ? (await getFolderPath(snippet.folderId)).path || [] 
+    : [];
   
   return (
-    <div className="container mx-auto py-6">
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+    <div className="container mx-auto py-6 max-w-6xl">
+      {/* Add Back Button */}
+      <div className="mb-4">
+        <Link href="/code-snippet">
+          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+            <ChevronLeft size={16} />
+            Back to Snippets
+          </Button>
+        </Link>
+      </div>
+      
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">{snippet.title}</h1>
+          
+          {/* Breadcrumb path */}
+          <div className="text-sm text-muted-foreground mt-1">
+            <span className="font-mono">
+              /root
+              {folderPath.map((f) => `/${f.name}`)}
+              /{snippet.title}
+            </span>
+          </div>
         </div>
-      ) : error ? (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-md">
-          {error}
+        
+        <div className="flex gap-2">
+          <Link href={`/code-snippet/edit/${params.snippetId}`}>
+            <Button variant="outline" size="sm">
+              <Pencil size={14} className="mr-1" />
+              Edit
+            </Button>
+          </Link>
+          <DeleteSnippetButton snippetId={params.snippetId} snippetTitle={snippet.title} />
         </div>
-      ) : snippet ? (
-        <>
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <div className="flex items-center mb-2">
-                <Link 
-                  href={snippet.folderId ? `/code-snippet/folder/${snippet.folderId}` : "/code-snippet"}
-                  className="text-gray-500 hover:text-blue-600 mr-3"
-                >
-                  <ArrowLeft size={18} />
-                </Link>
-                <h1 className="text-2xl font-bold">{snippet.title}</h1>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Snippet view */}
+        <div className="lg:col-span-8 order-2 lg:order-1">
+          <div className="border rounded-md p-4 bg-background">
+            {/* Show description if exists */}
+            {snippet.description && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-1">Description</h3>
+                <p className="text-sm text-muted-foreground">{snippet.description}</p>
               </div>
-              
-              {/* Breadcrumb */}
-              {snippet.folderId && (
-                <div className="flex items-center text-sm text-gray-500">
-                  <Folder size={14} className="mr-1" />
-                  <Link href="/code-snippet" className="hover:text-blue-600">
-                    Root
-                  </Link>
-                  {folderPath.map((folder, index) => (
-                    <React.Fragment key={folder.id}>
-                      <span className="mx-1">/</span>
-                      <Link
-                        href={`/code-snippet/folder/${folder.id}`}
-                        className="hover:text-blue-600"
-                      >
-                        {folder.name}
-                      </Link>
-                    </React.Fragment>
+            )}
+            
+            {/* Show tags if exists */}
+            {snippet.tags && snippet.tags.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-1">Tags</h3>
+                <div className="flex flex-wrap gap-1">
+                  {snippet.tags.map(tag => (
+                    <span 
+                      key={tag} 
+                      className="px-2 py-0.5 bg-secondary text-secondary-foreground rounded-md text-xs"
+                    >
+                      {tag}
+                    </span>
                   ))}
                 </div>
-              )}
-              
-              <div className="mt-1 text-sm text-gray-500">
-                Created: {formatDate(snippet.createdAt)} • Updated: {formatDate(snippet.updatedAt)}
               </div>
-            </div>
-            
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
-                <Edit size={16} className="mr-1" />
-                Edit
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => setIsDeleteOpen(true)}>
-                <Trash size={16} className="mr-1" />
-                Delete
-              </Button>
-            </div>
-          </div>
-          
-          {/* Description */}
-          {snippet.description && (
-            <div className="bg-white dark:bg-gray-950 border rounded-md p-4 mb-6 shadow-sm">
-              <h2 className="text-lg font-medium mb-2">Description</h2>
-              <p className="text-gray-700 dark:text-gray-300">{snippet.description}</p>
-            </div>
-          )}
-          
-          {/* Tags */}
-          {snippet.tags && snippet.tags.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-lg font-medium mb-2">Tags</h2>
-              <div className="flex flex-wrap gap-2">
-                {snippet.tags.map(tag => (
-                  <Badge key={tag} variant="secondary">{tag}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Code Editor */}
-          <div className="bg-white dark:bg-gray-950 border rounded-md p-4 shadow-sm">
-            <CodeEditor
-              code={snippet.code}
-              language={snippet.language}
-              onChange={() => {}} // Read-only, so no changes
-              onLanguageChange={() => {}} // Read-only
-              readOnly={true}
-            />
-          </div>
-        </>
-      ) : (
-        <div className="text-center p-10">
-          <p>Snippet not found</p>
-        </div>
-      )}
-      
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen && !!snippet} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Edit Snippet</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {snippet && (
-              <SnippetForm
-                snippet={snippet}
-                folderId={snippet.folderId}
-                onCancel={() => setIsEditOpen(false)}
-              />
             )}
+            
+            
+
+            {/* Code editor (readonly) - using client component wrapper */}
+            <div className="mt-4">
+              <h3 className="text-sm font-medium mb-1">Code</h3>
+              <CodeViewerClient
+                code={snippet.code}
+                language={snippet.language}
+              />
+            </div>
+
+            
+            {/* Creation/update info */}
+            <div className="mt-4 text-xs text-muted-foreground">
+              <div>Created: {new Date(snippet.createdAt).toLocaleString()}</div>
+              <div>Last updated: {new Date(snippet.updatedAt).toLocaleString()}</div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Snippet</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>Are you sure you want to delete this snippet? This action cannot be undone.</p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+        
+        {/* File Explorer - use wrapper component */}
+        <div className="lg:col-span-4 order-1 lg:order-2">
+          <FileExplorerWrapper
+            initialFolderId={snippet.folderId}
+            targetPath="/code-snippet/new"
+          />
+        </div>
+      </div>
     </div>
   );
 }

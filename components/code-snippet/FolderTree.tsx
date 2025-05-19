@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Folder, ChevronRight, ChevronDown, File, Plus, MoreVertical } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, File, Plus, MoreVertical, ArrowUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ interface FolderTreeProps {
   level?: number;
   onCreateSnippet: (folderId: string | null) => void;
   onRefresh: () => void;
+  currentPath?: CodeFolder[]; // Added to track current folder path
 }
 
 export default function FolderTree({
@@ -36,7 +37,8 @@ export default function FolderTree({
   parentId,
   level = 0,
   onCreateSnippet,
-  onRefresh
+  onRefresh,
+  currentPath = []
 }: FolderTreeProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -101,24 +103,78 @@ export default function FolderTree({
     }
   };
 
+  // Navigate to parent folder function
+  const navigateToParent = () => {
+    if (currentPath.length > 0) {
+      const parentFolder = currentPath[currentPath.length - 2];
+      const path = parentFolder 
+        ? `/code-snippet/folder/${parentFolder.id}` 
+        : "/code-snippet";
+      router.push(path);
+    } else if (parentId) {
+      // Fallback if currentPath is not provided
+      router.push("/code-snippet");
+    }
+  };
+
   return (
     <>
       <div className="pl-4" style={{ marginLeft: level * 12 }}>
         {level === 0 && (
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">
-              {parentId ? "Contents" : "My Code Snippets"}
-            </h3>
-            <div className="flex gap-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                onClick={() => setIsCreateFolderOpen(true)}
-              >
-                <Plus size={16} />
-              </Button>
+          <div className="flex flex-col gap-2 mb-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">
+                {parentId ? "Current Location" : "My Code Snippets"}
+              </h3>
+              <div className="flex gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => setIsCreateFolderOpen(true)}
+                  title="Create new folder"
+                >
+                  <Plus size={16} />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline" 
+                  className="h-7"
+                  onClick={() => onCreateSnippet(parentId)}
+                  title="Create new snippet"
+                >
+                  <Plus size={14} className="mr-1" />
+                  New Snippet
+                </Button>
+              </div>
             </div>
+            
+            {/* Breadcrumb navigation */}
+            {parentId && (
+              <div className="flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs flex items-center"
+                  onClick={navigateToParent}
+                >
+                  <ArrowUp size={14} className="mr-1" />
+                  Up to {currentPath.length > 1 
+                    ? currentPath[currentPath.length - 2].name 
+                    : "Root"}
+                </Button>
+              </div>
+            )}
+            
+            {/* Current path display */}
+            {currentPath.length > 0 && (
+              <div className="text-xs text-muted-foreground pb-1 border-b">
+                <span className="font-mono">
+                  /root{currentPath.map(folder => `/${folder.name}`).join('')}
+                </span>
+              </div>
+            )}
           </div>
         )}
         
@@ -161,6 +217,9 @@ export default function FolderTree({
                     }}>
                       Rename
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onCreateSnippet(folder.id)}>
+                      Add Snippet
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-red-500"
@@ -184,6 +243,7 @@ export default function FolderTree({
                 level={level + 1}
                 onCreateSnippet={onCreateSnippet}
                 onRefresh={onRefresh}
+                currentPath={currentPath}
               />
             )}
           </div>
