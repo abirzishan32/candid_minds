@@ -78,19 +78,19 @@ const GlobalSidebar = ({ isSidebarCollapsed, toggleSidebar }: GlobalSidebarProps
       pulse: false
     },
     {
-      href: "/career",
-      icon: <Users size={20} />,
-      label: "Community",
-      id: "career",
-      pulse: false
-    },
-    {
       href: "/leetcode-qna",
       icon: <Zap size={20} />,
       label: "LeetCode QnA",
       id: "leetcode-qna",
       pulse: true,
       new: true
+    },
+    {
+      href: "/career",
+      icon: <Users size={20} />,
+      label: "Community",
+      id: "career",
+      pulse: false
     }
   ];
 
@@ -137,21 +137,24 @@ const GlobalSidebar = ({ isSidebarCollapsed, toggleSidebar }: GlobalSidebarProps
                 <Image 
                   src="/candid-minds-logo.png" 
                   alt="Candid Minds" 
-                  width={34} 
-                  height={34}
+                  width={42} 
+                  height={42}
                   className="rounded-full bg-gray-900" 
                 />
               </div>
             </motion.div>
             {!isSidebarCollapsed && (
-              <motion.h2 
+              <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
-                className="text-primary-100 font-bold tracking-wide select-none"
+                className="flex-1"
               > 
-                Candid<span className="text-white">AI</span>
-              </motion.h2>
+                <h2 className="text-lg font-bold tracking-wide select-none">
+                  <span className="text-primary-100">Candid</span>
+                  <span className="text-white">Minds</span>
+                </h2>
+              </motion.div>
             )}
           </Link>
           <motion.button 
@@ -164,29 +167,7 @@ const GlobalSidebar = ({ isSidebarCollapsed, toggleSidebar }: GlobalSidebarProps
           </motion.button>
         </div>
         
-        {/* User Quick Status */}
-        {isUserAuth && !isSidebarCollapsed && (
-          <div className="px-4 py-3 border-b border-gray-800/50 bg-gradient-to-r from-gray-900/80 to-gray-900/20 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-100 to-blue-600 opacity-60 blur-sm rounded-full"></div>
-                <div className="h-8 w-8 relative bg-gray-800 rounded-full flex items-center justify-center border border-gray-700">
-                  <span className="text-primary-100 font-semibold text-xs">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'A'}
-                  </span>
-                  <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-500"></span>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white font-medium text-sm">{user?.name || 'AI User'}</span>
-                <div className="flex items-center text-xs">
-                  <span className="text-green-400 mr-1">●</span>
-                  <span className="text-gray-400">Online</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
         
         {/* Navigation Links */}
         <div className="flex-1 py-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
@@ -217,35 +198,10 @@ const GlobalSidebar = ({ isSidebarCollapsed, toggleSidebar }: GlobalSidebarProps
               pulse={false}
             />
 
-            <SidebarLink 
-              href="/activity"
-              icon={<Activity size={20} />}
-              label="Your Activity"
-              collapsed={isSidebarCollapsed}
-              active={activeSection === "activity"}
-              pulse={false}
-              badge="3"
-            />
           </nav>
         </div>
         
-        {/* AI Assistant Feature */}
-        {/* {!isSidebarCollapsed && (
-          <div className="m-3 p-3 bg-gradient-to-r from-primary-100/10 to-blue-600/10 rounded-xl border border-primary-100/20">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-8 w-8 rounded-full bg-primary-100/20 flex items-center justify-center">
-                <Bot size={16} className="text-primary-100" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-white">AI Assistant</h4>
-                <p className="text-xs text-gray-400">Always ready to help</p>
-              </div>
-            </div>
-            <button className="w-full px-3 py-1.5 bg-primary-100/20 hover:bg-primary-100/30 text-primary-100 text-sm rounded-lg transition-colors">
-              Ask a question
-            </button>
-          </div>
-        )} */}
+        
 
         {/* User Profile */}
         <div className="p-4 border-t border-gray-800/50 bg-gray-900/50 backdrop-blur-sm">
