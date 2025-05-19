@@ -39,9 +39,9 @@ export default async function HomePage() {
               
               <div className="flex flex-wrap gap-4 pt-4">
                 {isAuthenticated ? (
-                  <Link href="/interview-home">
+                  <Link href="/dashboard">
                     <Button size="lg" className="bg-primary-100 hover:bg-primary-200 text-black font-medium px-8 text-base">
-                      Start Practicing
+                      Go to Dashboard
                       <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                   </Link>
@@ -53,15 +53,7 @@ export default async function HomePage() {
                     </Button>
                   </Link>
                 )}
-                
-                <Link href="#features">
-                  <Button variant="outline" size="lg" className="bg-transparent text-white border-gray-700 hover:bg-gray-900 hover:border-gray-600 px-8 text-base">
-                    Explore Features
-                  </Button>
-                </Link>
               </div>
-              
-              
             </div>
             
             <div className="lg:w-1/2 relative">
@@ -74,14 +66,12 @@ export default async function HomePage() {
                   height={400}
                   className="w-full rounded-lg shadow-lg object-cover"
                 />
-                
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Key Features Section */}
       <section id="features" className="py-20 bg-gray-950 relative min-h-screen flex items-center">
         <div className="w-full px-6 md:px-12 relative z-10">
           <div className="text-center mb-16 max-w-[2000px] mx-auto">
