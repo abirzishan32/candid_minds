@@ -66,6 +66,14 @@ export default function FileExplorer({
     fetchData();
   };
   
+  // Handle move snippet - implemented here since this component has access to refresh data
+  const handleMoveSnippet = (snippet: CodeSnippet) => {
+    // The actual implementation is handled in FolderTree component
+    // This function is just a pass-through to maintain component hierarchy
+    // FolderTree will handle the UI and API calls
+    // We just need to ensure it has access to this method
+  };
+  
   return (
     <div className="border rounded-md bg-background shadow-sm overflow-hidden">
       <div className="p-3 border-b flex justify-between items-center">
@@ -112,6 +120,7 @@ export default function FileExplorer({
             currentSnippets={currentSnippets}
             onCreateSnippet={onCreateSnippet}
             onRefresh={handleRefresh}
+            onMoveSnippet={handleMoveSnippet}
           />
         )}
       </div>

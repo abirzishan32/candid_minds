@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Folder, ChevronRight, ChevronDown, File, Plus, MoreVertical } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Folder, ChevronRight, ChevronDown, File, Plus, MoreVertical, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,16 @@ import { toast } from "sonner";
 import { 
   createFolder, 
   updateFolder, 
-  deleteFolder 
+  deleteFolder,
+  updateSnippet
 } from "@/lib/actions/code-snippet.action";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface FolderTreeProps {
   folders: CodeFolder[];
@@ -31,6 +39,7 @@ interface FolderTreeProps {
   level?: number;
   onCreateSnippet: (folderId: string | null) => void;
   onRefresh: () => void;
+  onMoveSnippet?: (snippet: CodeSnippet) => void;
 }
 
 export default function FolderTree({
@@ -41,14 +50,17 @@ export default function FolderTree({
   currentSnippets,
   level = 0,
   onCreateSnippet,
-  onRefresh
+  onRefresh,
+  onMoveSnippet
 }: FolderTreeProps) {
   const router = useRouter();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isRenameFolderOpen, setIsRenameFolderOpen] = useState(false);
   const [isDeleteFolderOpen, setIsDeleteFolderOpen] = useState(false);
+  const [isMoveSnippetOpen, setIsMoveSnippetOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<CodeFolder | null>(null);
+  const [selectedSnippet, setSelectedSnippet] = useState<CodeSnippet | null>(null);
   const [folderName, setFolderName] = useState("");
   
   const toggleFolder = (folderId: string) => {
@@ -119,6 +131,31 @@ export default function FolderTree({
       toast.error("Failed to delete folder");
     }
   };
+  
+  const handleMoveSnippet = (snippet: CodeSnippet) => {
+    setSelectedSnippet(snippet);
+    setIsMoveSnippetOpen(true);
+  };
+  
+  const moveSnippet = async (snippetId: string, destinationFolderId: string | null) => {
+    try {
+      const result = await updateSnippet(snippetId, {
+        folderId: destinationFolderId
+      });
+      
+      if (result.success) {
+        toast.success("Snippet moved successfully");
+        onRefresh(); // Refresh folder contents
+      } else {
+        toast.error(`Error moving snippet: ${result.error || "Unknown error"}`);
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error("Error moving snippet:", error);
+      toast.error("Failed to move snippet");
+      throw error; // Rethrow to let the dialog handle the error
+    }
+  };
 
   // This is the entry point when level === 0
   if (level === 0) {
@@ -187,6 +224,7 @@ export default function FolderTree({
               <SnippetItem 
                 key={snippet.id}
                 snippet={snippet}
+                onMoveSnippet={handleMoveSnippet}
               />
             ))}
           </>
@@ -215,6 +253,14 @@ export default function FolderTree({
           onConfirm={handleDeleteFolder}
           folderName={selectedFolder?.name || ""}
         />
+        
+        <MoveSnippetDialog
+          isOpen={isMoveSnippetOpen}
+          onClose={() => setIsMoveSnippetOpen(false)}
+          snippet={selectedSnippet}
+          folders={folders}
+          onMove={moveSnippet}
+        />
       </div>
     );
   }
@@ -222,7 +268,7 @@ export default function FolderTree({
   // This is for rendering nested levels
   return (
     <div className="pl-4">
-      {folders.map((folder) => (
+      {folders.filter(folder => folder.parentId === parentId).map((folder) => (
         <FolderItem
           key={folder.id}
           folder={folder}
@@ -241,9 +287,31 @@ export default function FolderTree({
         />
       ))}
       
-      {snippets.map((snippet) => (
-        <SnippetItem key={snippet.id} snippet={snippet} />
+      {snippets.filter(snippet => snippet.folderId === parentId).map((snippet) => (
+        <SnippetItem 
+          key={snippet.id} 
+          snippet={snippet} 
+          onMoveSnippet={handleMoveSnippet} 
+        />
       ))}
+      
+      {/* Render child folders if expanded */}
+      {folders
+        .filter(folder => folder.parentId === parentId)
+        .map(folder => expandedFolders[folder.id] && (
+          <div key={`subfolder-${folder.id}`} className="pl-4">
+            <FolderTree
+              folders={folders}
+              snippets={snippets}
+              parentId={folder.id}
+              currentFolders={folders.filter(f => f.parentId === folder.id)}
+              currentSnippets={snippets.filter(s => s.folderId === folder.id)}
+              level={level + 1}
+              onCreateSnippet={onCreateSnippet}
+              onRefresh={onRefresh}
+            />
+          </div>
+        ))}
     </div>
   );
 }
@@ -314,7 +382,10 @@ function FolderItem({
   );
 }
 
-function SnippetItem({ snippet }: { snippet: CodeSnippet }) {
+function SnippetItem({ snippet, onMoveSnippet }: { 
+  snippet: CodeSnippet;
+  onMoveSnippet: (snippet: CodeSnippet) => void;
+}) {
   return (
     <div className="flex items-center pl-6 group">
       <Link
@@ -324,6 +395,21 @@ function SnippetItem({ snippet }: { snippet: CodeSnippet }) {
         <File size={16} className="mr-1.5 text-gray-500" />
         <span className="truncate">{snippet.title}</span>
       </Link>
+      
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6">
+              <MoreVertical size={14} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={() => onMoveSnippet(snippet)}>
+              Move to Folder
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }
@@ -450,6 +536,145 @@ function DeleteFolderDialog({
             Cancel
           </Button>
           <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+// MoveSnippetDialog component
+function MoveSnippetDialog({
+  isOpen,
+  onClose,
+  snippet,
+  folders,
+  onMove
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  snippet: CodeSnippet | null;
+  folders: CodeFolder[];
+  onMove: (snippetId: string, folderId: string | null) => Promise<void>;
+}) {
+  const [selectedFolderId, setSelectedFolderId] = useState<string | "root">("root");
+  const [isMoving, setIsMoving] = useState(false);
+  
+  // Group folders by parent to build a tree structure
+  const foldersByParent = useMemo(() => {
+    const byParent: Record<string, CodeFolder[]> = {};
+    
+    // Initialize with an empty array for root folders
+    byParent['root'] = [];
+    
+    folders.forEach(folder => {
+      const parentId = folder.parentId || 'root';
+      if (!byParent[parentId]) {
+        byParent[parentId] = [];
+      }
+      byParent[parentId].push(folder);
+    });
+    
+    return byParent;
+  }, [folders]);
+  
+  // Reset selection when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedFolderId("root");
+      setIsMoving(false);
+    }
+  }, [isOpen]);
+  
+  // Recursive function to render folder options with indentation
+  const renderFolderOptions = (parentId: string | 'root', level = 0) => {
+    const foldersForParent = foldersByParent[parentId] || [];
+    
+    return foldersForParent.map(folder => (
+      <React.Fragment key={folder.id}>
+        <SelectItem 
+          value={folder.id} 
+          // Fix the className to use a more reliable approach
+          className={`pl-${level > 0 ? 4 + level * 2 : 2}`}
+        >
+          {level > 0 && "↳ "}{folder.name}
+        </SelectItem>
+        {foldersByParent[folder.id] && renderFolderOptions(folder.id, level + 1)}
+      </React.Fragment>
+    ));
+  };
+  
+  const handleMove = async () => {
+    if (!snippet) return;
+    
+    // Convert "root" to null for the database
+    const targetFolderId = selectedFolderId === "root" ? null : selectedFolderId;
+    
+    // Don't do anything if moving to the same folder
+    if (targetFolderId === snippet.folderId) {
+      onClose();
+      return;
+    }
+    
+    setIsMoving(true);
+    try {
+      await onMove(snippet.id, targetFolderId);
+      onClose();
+    } catch (error) {
+      console.error("Error moving snippet:", error);
+      // Toast error is already shown in onMove function
+    } finally {
+      setIsMoving(false);
+    }
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Move Snippet to Folder</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          {snippet && (
+            <div className="mb-4">
+              <p className="text-sm font-medium">Moving: <span className="font-semibold">{snippet.title}</span></p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Currently in: {snippet.folderId 
+                  ? folders.find(f => f.id === snippet.folderId)?.name || "Unknown folder" 
+                  : "Root"}
+              </p>
+            </div>
+          )}
+          
+          <Label htmlFor="folderSelect">Select destination folder</Label>
+          <Select 
+            value={selectedFolderId} 
+            onValueChange={(value) => setSelectedFolderId(value)}
+          >
+            <SelectTrigger id="folderSelect" className="mt-1">
+              <SelectValue placeholder="Select a folder" />
+            </SelectTrigger>
+            <SelectContent>
+              {/* Important: Use "root" as value instead of empty string */}
+              <SelectItem value="root">Root (No folder)</SelectItem>
+              {renderFolderOptions('root')}
+            </SelectContent>
+          </Select>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isMoving}>
+            Cancel
+          </Button>
+          <Button onClick={handleMove} disabled={isMoving}>
+            {isMoving ? (
+              <>
+                <Loader2 size={16} className="mr-2 animate-spin" />
+                Moving...
+              </>
+            ) : (
+              "Move Snippet"
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

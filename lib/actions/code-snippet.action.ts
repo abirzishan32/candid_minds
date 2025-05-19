@@ -93,7 +93,6 @@ export async function createSnippet(data: {
     return { success: false, error: "Failed to create snippet" };
   }
 }
-
 export async function updateSnippet(id: string, data: Partial<Omit<CodeSnippet, "id" | "userId" | "createdAt">>) {
   try {
     const currentUser = await getCurrentUser();
@@ -114,6 +113,9 @@ export async function updateSnippet(id: string, data: Partial<Omit<CodeSnippet, 
       return { success: false, error: "Unauthorized" };
     }
     
+    // Check if we're moving the snippet to a different folder
+    const isMovingFolder = data.folderId !== undefined && data.folderId !== snippet.folderId;
+    
     // Update snippet
     const updateData = {
       ...data,
@@ -122,10 +124,26 @@ export async function updateSnippet(id: string, data: Partial<Omit<CodeSnippet, 
     
     await snippetRef.update(updateData);
     
+    // Revalidate paths to ensure UI is updated properly
     revalidatePath(`/code-snippet/${id}`);
-    if (snippet.folderId) {
+    
+    // If the folder is changing, revalidate both old and new folder paths
+    if (isMovingFolder) {
+      // Revalidate old folder path
+      if (snippet.folderId) {
+        revalidatePath(`/code-snippet/folder/${snippet.folderId}`);
+      }
+      
+      // Revalidate new folder path
+      if (data.folderId) {
+        revalidatePath(`/code-snippet/folder/${data.folderId}`);
+      }
+    } else if (snippet.folderId) {
+      // If not moving, just revalidate current folder path
       revalidatePath(`/code-snippet/folder/${snippet.folderId}`);
     }
+    
+    // Always revalidate root path
     revalidatePath('/code-snippet');
     
     return { success: true };
