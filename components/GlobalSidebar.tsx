@@ -16,7 +16,8 @@ import {
   HelpCircle,
   Zap,
   Activity,
-  LogOut
+  LogOut,
+  Code
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -91,7 +92,21 @@ const GlobalSidebar = ({ isSidebarCollapsed, toggleSidebar }: GlobalSidebarProps
       label: "Community",
       id: "career",
       pulse: false
-    }
+    },
+    {
+      href: "/algo-visualizer",
+      icon: <Activity size={20} />,
+      label: "Algorithm Visualizer",
+      id: "algo-visualizer",
+      pulse: false
+    },
+    {
+      href: "/code-snippet",
+      icon: <Code size={20} />,
+      label: "Code Snippet",
+      id: "code-snippet",
+      pulse: false
+    },
   ];
 
   if (isModerator) {
