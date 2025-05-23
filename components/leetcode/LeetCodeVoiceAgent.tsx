@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "../ui/button";
 import { difficultyColors } from "@/constants/leetcode";
-// Import the speech-to-text package
 import SpeechToText from "speech-to-text";
 
 enum CallStatus {
