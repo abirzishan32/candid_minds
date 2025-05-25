@@ -285,7 +285,7 @@ export function VideoDisplay({ videoUrl, className }: VideoDisplayProps) {
           onError={handleVideoError}
           src={blobUrl}
         >
-          Your browser does not support the video tag.
+          Your browser does not support the video tag. Sorry.
         </video>
       )}
     </div>
