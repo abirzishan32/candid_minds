@@ -5,8 +5,6 @@ import { motion } from "framer-motion";
 import { SystemDesignInput } from "@/components/system-design/SystemDesignInput";
 import { DiagramViewer } from "@/components/system-design/DiagramViewer";
 import { LoadingDiagram } from "@/components/system-design/LoadingDiagram";
-import { DiagramHistory } from "@/components/system-design/DiagramHistory";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DiagramData {
   id: string;
@@ -15,6 +13,7 @@ interface DiagramData {
   diagramUrl: string;
   explanation: string;
   timestamp: Date;
+  versions?: any[];
 }
 
 export default function SystemDesignPage() {
@@ -49,10 +48,11 @@ export default function SystemDesignPage() {
         diagramUrl: data.diagramUrl,
         explanation: data.explanation,
         timestamp: new Date(),
+        versions: []
       };
 
       setCurrentDiagram(newDiagram);
-      setDiagramHistory(prev => [newDiagram, ...prev.slice(0, 9)]); // Keep last 10
+      setDiagramHistory(prev => [newDiagram, ...prev.slice(0, 9)]);
     } catch (error) {
       console.error('Error generating diagram:', error);
       setError('Failed to generate system design diagram. Please try again.');
@@ -78,7 +78,8 @@ export default function SystemDesignPage() {
             System Design Generator
           </h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Transform your system design ideas into visual diagrams using AI-powered PlantUML generation
+            Transform your system design ideas into visual diagrams using AI-powered PlantUML generation.
+            Switch to interactive mode for advanced editing and version control.
           </p>
         </motion.div>
 
@@ -119,19 +120,15 @@ export default function SystemDesignPage() {
                   <div className="text-6xl mb-4">🏗️</div>
                   <h3 className="text-xl text-gray-400 mb-2">No Diagram Yet</h3>
                   <p className="text-gray-500">Enter a system design prompt to get started</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Try: "Design a video streaming platform like YouTube"
+                  </p>
                 </div>
               </motion.div>
             )}
           </div>
 
-          {/* History Sidebar */}
-          <div className="lg:col-span-1">
-            <DiagramHistory 
-              history={diagramHistory}
-              onSelect={handleSelectFromHistory}
-              currentDiagramId={currentDiagram?.id}
-            />
-          </div>
+         
         </div>
       </div>
     </div>

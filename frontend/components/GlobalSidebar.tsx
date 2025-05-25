@@ -114,6 +114,13 @@ const GlobalSidebar = ({ isSidebarCollapsed, toggleSidebar }: GlobalSidebarProps
       label: "AI Algorithm Animation",
       id: "ai-animation",
       pulse: false
+    },
+    {
+      href: "/system-design",
+      icon: <BrainCog size={20} />,
+      label: "System Design",
+      id: "system-design",
+      pulse: false
     }
   ];
 

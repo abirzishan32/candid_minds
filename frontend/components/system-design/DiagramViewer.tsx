@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Code, Eye, Copy, Check, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, Code, Eye, Copy, Check, ZoomIn, ZoomOut, Layers } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InteractiveDiagram } from "./InteractiveDiagram";
 
 interface DiagramData {
   id: string;
@@ -20,6 +21,7 @@ interface DiagramViewerProps {
 
 export function DiagramViewer({ diagram }: DiagramViewerProps) {
   const [activeTab, setActiveTab] = useState("diagram");
+  const [viewMode, setViewMode] = useState<"static" | "interactive">("static");
   const [copied, setCopied] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -48,6 +50,11 @@ export function DiagramViewer({ diagram }: DiagramViewerProps) {
 
   const handleZoomOut = () => {
     setZoom(prev => Math.max(prev - 25, 50));
+  };
+
+  const handleSaveInteractive = (nodes: any[], links: any[]) => {
+    console.log('Saving interactive diagram:', { nodes, links });
+    // Here you could save to your backend or local storage
   };
 
   return (
@@ -98,73 +105,110 @@ export function DiagramViewer({ diagram }: DiagramViewerProps) {
 
         <TabsContent value="diagram" className="p-0 m-0">
           <div className="relative">
-            {/* Diagram Controls */}
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg p-2 flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <div className="absolute top-4 left-4 z-20">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg p-1 flex items-center gap-1">
                 <button
-                  onClick={handleZoomOut}
-                  className="p-1 hover:bg-gray-700 rounded transition-colors"
-                  title="Zoom Out"
+                  onClick={() => setViewMode("static")}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                    viewMode === "static" 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
                 >
-                  <ZoomOut className="w-4 h-4 text-white" />
+                  Static View
                 </button>
-                <span className="text-xs text-white px-2">{zoom}%</span>
                 <button
-                  onClick={handleZoomIn}
-                  className="p-1 hover:bg-gray-700 rounded transition-colors"
-                  title="Zoom In"
+                  onClick={() => setViewMode("interactive")}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-1 ${
+                    viewMode === "interactive" 
+                      ? 'bg-purple-600 text-white' 
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
                 >
-                  <ZoomIn className="w-4 h-4 text-white" />
+                  <Layers className="w-3 h-3" />
+                  Interactive View
                 </button>
               </div>
-              <button
-                onClick={handleDownloadImage}
-                className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
-                title="Download Diagram"
-              >
-                <Download className="w-4 h-4" />
-              </button>
             </div>
 
-            {/* Diagram Image */}
-            <div className="p-6 bg-white/5 min-h-96 flex items-center justify-center overflow-auto">
-              {imageLoading && (
-                <div className="flex items-center gap-2 text-gray-400">
-                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  Loading diagram...
+            {viewMode === "static" ? (
+              <>
+                {/* Static Diagram Controls */}
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-lg p-2 flex items-center gap-2">
+                    <button
+                      onClick={handleZoomOut}
+                      className="p-1 hover:bg-gray-700 rounded transition-colors"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="w-4 h-4 text-white" />
+                    </button>
+                    <span className="text-xs text-white px-2">{zoom}%</span>
+                    <button
+                      onClick={handleZoomIn}
+                      className="p-1 hover:bg-gray-700 rounded transition-colors"
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleDownloadImage}
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
+                    title="Download Diagram"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                 </div>
-              )}
-              
-              <AnimatePresence>
-                {!imageError && (
-                  <motion.img
-                    src={diagram.diagramUrl}
-                    alt="System Design Diagram"
-                    className="max-w-full h-auto rounded-lg shadow-lg"
-                    style={{ 
-                      transform: `scale(${zoom / 100})`,
-                      transformOrigin: 'center',
-                    }}
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => {
-                      setImageLoading(false);
-                      setImageError(true);
-                    }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: imageLoading ? 0 : 1 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                )}
-              </AnimatePresence>
 
-              {imageError && (
-                <div className="text-center text-gray-400">
-                  <div className="text-4xl mb-2">⚠️</div>
-                  <p>Failed to load diagram</p>
-                  <p className="text-sm">Please try regenerating</p>
+                {/* Static Diagram Image */}
+                <div className="p-6 pt-16 bg-white/5 min-h-96 flex items-center justify-center overflow-auto">
+                  {imageLoading && (
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      Loading diagram...
+                    </div>
+                  )}
+                  
+                  <AnimatePresence>
+                    {!imageError && (
+                      <motion.img
+                        src={diagram.diagramUrl}
+                        alt="System Design Diagram"
+                        className="max-w-full h-auto rounded-lg shadow-lg"
+                        style={{ 
+                          transform: `scale(${zoom / 100})`,
+                          transformOrigin: 'center',
+                        }}
+                        onLoad={() => setImageLoading(false)}
+                        onError={() => {
+                          setImageLoading(false);
+                          setImageError(true);
+                        }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: imageLoading ? 0 : 1 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    )}
+                  </AnimatePresence>
+
+                  {imageError && (
+                    <div className="text-center text-gray-400">
+                      <div className="text-4xl mb-2">⚠️</div>
+                      <p>Failed to load diagram</p>
+                      <p className="text-sm">Please try regenerating</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              /* Interactive Diagram */
+              <InteractiveDiagram 
+                plantUML={diagram.plantUML}
+                onSave={handleSaveInteractive}
+              />
+            )}
           </div>
         </TabsContent>
 
@@ -208,6 +252,16 @@ export function DiagramViewer({ diagram }: DiagramViewerProps) {
           <p className="text-sm text-gray-400 leading-relaxed">
             {diagram.explanation}
           </p>
+          
+          {viewMode === "interactive" && (
+            <div className="mt-3 p-3 bg-purple-900/20 border border-purple-500/30 rounded-lg">
+              <p className="text-xs text-purple-300">
+                💡 <strong>Interactive Mode:</strong> You can drag components to reposition them, 
+                click to select nodes, and use edit mode to lock positions. 
+                Save your modifications or download as SVG.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </motion.div>
