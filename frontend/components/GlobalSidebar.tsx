@@ -17,7 +17,8 @@ import {
   Zap,
   Activity,
   LogOut,
-  Code
+  Code,
+  BrainCog
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -107,6 +108,13 @@ const GlobalSidebar = ({ isSidebarCollapsed, toggleSidebar }: GlobalSidebarProps
       id: "code-snippet",
       pulse: false
     },
+    {
+      href: "/ai-animation",
+      icon: <BrainCog size={20} />,
+      label: "AI Algorithm Animation",
+      id: "ai-animation",
+      pulse: false
+    }
   ];
 
   if (isModerator) {
