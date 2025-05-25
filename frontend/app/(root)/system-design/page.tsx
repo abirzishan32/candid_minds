@@ -68,20 +68,7 @@ export default function SystemDesignPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent mb-4">
-            System Design Generator
-          </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Transform your system design ideas into visual diagrams using AI-powered PlantUML generation.
-            Switch to interactive mode for advanced editing and version control.
-          </p>
-        </motion.div>
+       
 
         {/* Input Section */}
         <div className="mb-8">
