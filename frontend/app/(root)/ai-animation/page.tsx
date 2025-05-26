@@ -8,7 +8,6 @@ import { PromptInput } from "@/components/ai-animation/PromptInput";
 import { LoadingAnimation } from "@/components/ai-animation/LoadingAnimation";
 
 export default function AIAnimationPage() {
-  // State definitions remain the same
   const [isLoading, setIsLoading] = useState(false);
   const [conversations, setConversations] = useState<Array<{
     type: "prompt" | "response";
@@ -18,17 +17,13 @@ export default function AIAnimationPage() {
   }>>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom when new messages appear
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversations]);
 
-  // generateAnimation function remains the same
   const generateAnimation = async (prompt: string) => {
-    // Existing implementation...
     setIsLoading(true);
     
-    // Add user prompt to conversation immediately
     setConversations(prev => [
       ...prev, 
       { 
@@ -40,9 +35,10 @@ export default function AIAnimationPage() {
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      console.log("Sending request to:", `${apiUrl}/generate-animation`);
       
-      const response = await fetch(`${apiUrl}/generate-animation`, {
+      // Try new endpoint first, fallback to legacy
+      let endpoint = `${apiUrl}/ai-animation/generate`;
+      let response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -50,15 +46,27 @@ export default function AIAnimationPage() {
         body: JSON.stringify({ prompt }),
       });
 
+      // If new endpoint fails, try legacy endpoint
+      if (!response.ok && response.status === 404) {
+        console.log("New endpoint not found, trying legacy endpoint...");
+        endpoint = `${apiUrl}/generate-animation`;
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ prompt }),
+        });
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
         throw new Error(errorData.detail || "Failed to generate animation");
       }
 
       const data = await response.json();
       console.log("API response:", data);
       
-      // Add AI response to conversation
       setConversations(prev => [
         ...prev, 
         { 
@@ -78,7 +86,6 @@ export default function AIAnimationPage() {
       console.error("Error generating animation:", error);
       toast.error(error instanceof Error ? error.message : "Failed to generate animation");
       
-      // Add error message to conversation
       setConversations(prev => [
         ...prev, 
         { 
@@ -94,16 +101,15 @@ export default function AIAnimationPage() {
 
   return (
     <div className="relative flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-gradient-to-b from-gray-900 to-black">
-      {/* Ambient background effects - MODIFIED FOR BETTER READABILITY */}
+      {/* Ambient background effects */}
       <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px] pointer-events-none" />
-      {/* Reduced vignette intensity by increasing transparent area (from 20% to 50%) and lowering opacity */}
       <div className="absolute pointer-events-none inset-0 flex items-center justify-center bg-black/40 [mask-image:radial-gradient(ellipse_at_center,transparent_50%,black)]"></div>
       
-      {/* Glowing orbs effect - REDUCED OPACITY */}
+      {/* Glowing orbs effect */}
       <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl opacity-15 animate-pulse" />
       <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl opacity-15 animate-pulse" />
 
-      {/* Content area - Added a subtle backdrop blur and improved contrast */}
+      {/* Content area */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden relative z-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 drop-shadow-sm">
@@ -118,7 +124,7 @@ export default function AIAnimationPage() {
           )}
         </div>
         
-        {/* Conversation Area - Improved text contrast */}
+        {/* Conversation Area */}
         <div className="flex-1 overflow-y-auto pr-4 space-y-6 pb-4 custom-scrollbar">
           {conversations.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -184,10 +190,10 @@ export default function AIAnimationPage() {
         </div>
       </div>
 
-      {/* Huge loading overlay */}
+      {/* Loading overlay */}
       {isLoading && <LoadingAnimation />}
       
-      {/* Prompt input at bottom */}
+      {/* Prompt input */}
       <div className="w-full p-4 relative z-10 bg-gradient-to-t from-gray-900 to-transparent pt-8">
         <PromptInput onSubmit={generateAnimation} isLoading={isLoading} />
       </div>
