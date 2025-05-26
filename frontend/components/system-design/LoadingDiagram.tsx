@@ -232,7 +232,7 @@ export function LoadingDiagram({
   const getStatusSteps = (currentStage: string) => {
     const steps = [
       { name: 'Requirements Analysis', stages: ['starting', 'requirements_analyzed'] },
-      { name: 'PlantUML Generation', stages: ['plantuml_generated'] },
+      { name: 'Visualization Generation', stages: ['plantuml_generated'] },
       { name: 'Documentation', stages: ['explanation_generated'] },
       { name: 'Finalization', stages: ['diagram_complete'] }
     ];

@@ -7,7 +7,7 @@ import { SystemDesignInput } from "@/components/system-design/SystemDesignInput"
 import { DiagramViewer } from "@/components/system-design/DiagramViewer";
 import { LoadingDiagram } from "@/components/system-design/LoadingDiagram";
 import { InteractiveDiagram } from "@/components/system-design/InteractiveDiagram";
-
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 interface SystemDesignProgress {
   status: "in_progress" | "complete" | "error";
   progress: number;
@@ -33,6 +33,16 @@ interface DiagramData {
   timestamp: Date;
 }
 
+interface ConversationItem {
+  type: "prompt" | "response";
+  content: string;
+  diagramData?: DiagramData;
+  analysis?: any;
+  timestamp: Date;
+}
+
+
+
 export default function SystemDesignPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [designProgress, setDesignProgress] = useState<SystemDesignProgress | null>(null);
@@ -53,16 +63,16 @@ export default function SystemDesignPage() {
   const generateSystemDesignWithStreaming = async (prompt: string) => {
     setIsLoading(true);
     setDesignProgress(null);
-    
+
     setConversations(prev => [
-      ...prev, 
-      { 
-        type: "prompt", 
-        content: prompt, 
-        timestamp: new Date() 
+      ...prev,
+      {
+        type: "prompt",
+        content: prompt,
+        timestamp: new Date()
       }
     ]);
-    
+
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await fetch(`${apiUrl}/system-design/generate-stream`, {
@@ -88,7 +98,7 @@ export default function SystemDesignPage() {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         const chunk = decoder.decode(value);
@@ -100,7 +110,7 @@ export default function SystemDesignPage() {
               const data = JSON.parse(line.slice(6));
               setDesignProgress(data);
               finalResult = data;
-              
+
               // Update loading with current stage
               if (data.stage_description) {
                 console.log(`Stage: ${data.stage} - ${data.stage_description}`);
@@ -126,13 +136,13 @@ export default function SystemDesignPage() {
         } : null;
 
         setConversations(prev => [
-          ...prev, 
-          { 
-            type: "response", 
-            content: finalResult.explanation || "System design generation completed", 
+          ...prev,
+          {
+            type: "response",
+            content: finalResult.explanation || "System design generation completed",
             diagramData,
             analysis: finalResult.analysis,
-            timestamp: new Date() 
+            timestamp: new Date()
           }
         ]);
 
@@ -146,13 +156,13 @@ export default function SystemDesignPage() {
     } catch (error) {
       console.error("Error generating system design:", error);
       toast.error(error instanceof Error ? error.message : "Failed to generate system design");
-      
+
       setConversations(prev => [
-        ...prev, 
-        { 
-          type: "response", 
-          content: "I encountered an error while generating your system design. Please try again.", 
-          timestamp: new Date() 
+        ...prev,
+        {
+          type: "response",
+          content: "I encountered an error while generating your system design. Please try again.",
+          timestamp: new Date()
         }
       ]);
     } finally {
@@ -171,9 +181,9 @@ export default function SystemDesignPage() {
     };
 
     // Update the conversation with the edited diagram
-    setConversations(prev => 
-      prev.map(conv => 
-        conv.diagramData?.id === diagramData.id 
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.diagramData?.id === diagramData.id
           ? { ...conv, diagramData: updatedData }
           : conv
       )
@@ -183,47 +193,40 @@ export default function SystemDesignPage() {
   return (
     <div className="relative flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-gradient-to-b from-gray-900 to-black">
       {/* Background effects */}
-      <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px] pointer-events-none" />
-      <div className="absolute pointer-events-none inset-0 flex items-center justify-center bg-black/40 [mask-image:radial-gradient(ellipse_at_center,transparent_50%,black)]"></div>
-      
-      {/* Glowing orbs */}
-      <div className="absolute top-10 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl opacity-15 animate-pulse" />
-      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl opacity-15 animate-pulse" />
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
 
-      {/* Content area */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden relative z-10">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 drop-shadow-sm">
-              System Design Studio
-            </h1>
-            <p className="text-gray-400 text-sm mt-1">Powered by LangGraph & PlantUML</p>
-          </div>
-          
-          {isLoading && designProgress && (
-            <div className="flex flex-col items-end text-right">
-              <div className="flex items-center text-blue-400 text-sm font-medium mb-1">
-                <span className="animate-pulse mr-2">●</span>
-                {designProgress.stage_description}
-              </div>
-              <div className="w-32 bg-gray-800 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.max(0, designProgress.progress)}%` }}
-                />
-              </div>
-              <span className="text-xs text-gray-500 mt-1">
-                {designProgress.progress}% complete
-              </span>
+      {/* Fixed Header with Progress */}
+      {isLoading && designProgress && (
+        <div className="absolute top-4 right-4 z-20">
+          <div className="flex flex-col items-end text-right bg-black/60 backdrop-blur-sm rounded-lg p-3">
+            <div className="flex items-center text-blue-400 text-sm font-medium mb-2">
+              <span className="animate-pulse mr-2">●</span>
+              {designProgress.stage_description}
             </div>
-          )}
+            <div className="w-32 bg-gray-800 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${Math.max(0, designProgress.progress)}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-500 mt-1">
+              {designProgress.progress}% complete
+            </span>
+          </div>
         </div>
-        
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col relative z-10 min-h-0">
         {/* Conversation Area */}
-        <div className="flex-1 overflow-y-auto pr-4 space-y-6 pb-4 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 pb-2 space-y-6 custom-scrollbar">
           {conversations.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
@@ -240,10 +243,10 @@ export default function SystemDesignPage() {
                 <div className="flex flex-col gap-3">
                   {[
                     "Design a video streaming platform like YouTube",
-                    "Create a microservices e-commerce architecture", 
+                    "Create a microservices e-commerce architecture",
                     "Build a real-time chat application system"
                   ].map(suggestion => (
-                    <button 
+                    <button
                       key={suggestion}
                       onClick={() => generateSystemDesignWithStreaming(suggestion)}
                       disabled={isLoading}
@@ -272,7 +275,17 @@ export default function SystemDesignPage() {
                         : "bg-gray-800/90 backdrop-blur-sm border border-gray-700/50 text-gray-100"
                     }`}
                   >
-                    <p className="text-sm mb-4">{item.content}</p>
+                    {/* Use MarkdownRenderer for response content */}
+                    {item.type === "response" ? (
+                      <div className="mb-4">
+                        <MarkdownRenderer 
+                          content={item.content} 
+                          className="text-gray-100"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-sm mb-4">{item.content}</p>
+                    )}
                     
                     {/* Diagram Display */}
                     {item.type === "response" && item.diagramData && (
@@ -324,17 +337,6 @@ export default function SystemDesignPage() {
                       </div>
                     )}
                     
-                    {/* Analysis Details */}
-                    {item.type === "response" && item.analysis && (
-                      <details className="mt-4 text-xs">
-                        <summary className="cursor-pointer text-blue-400 hover:text-blue-300">
-                          View Architecture Analysis
-                        </summary>
-                        <pre className="mt-2 p-2 bg-gray-900/50 rounded text-green-400 overflow-auto">
-                          {JSON.stringify(item.analysis, null, 2)}
-                        </pre>
-                      </details>
-                    )}
                   </div>
                 </motion.div>
               ))}
@@ -342,24 +344,24 @@ export default function SystemDesignPage() {
           )}
           <div ref={bottomRef} />
         </div>
+
+        {/* Fixed Input Area at Bottom */}
+        <div className="flex-shrink-0 p-4">
+          <SystemDesignInput
+            onSubmit={generateSystemDesignWithStreaming}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
-      {/* Enhanced loading overlay with workflow progress */}
+      {/* Enhanced loading overlay */}
       {isLoading && (
-        <LoadingDiagram 
+        <LoadingDiagram
           progress={designProgress?.progress || 0}
           stage={designProgress?.stage || "starting"}
           stageDescription={designProgress?.stage_description || "Initializing..."}
         />
       )}
-      
-      {/* System Design Input */}
-      <div className="w-full p-4 relative z-10 bg-gradient-to-t from-gray-900 to-transparent pt-8">
-        <SystemDesignInput 
-          onSubmit={generateSystemDesignWithStreaming} 
-          isLoading={isLoading} 
-        />
-      </div>
     </div>
   );
 }

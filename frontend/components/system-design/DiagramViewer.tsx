@@ -319,30 +319,7 @@ export function DiagramViewer({ diagram, onEdit }: DiagramViewerProps) {
       )}
 
       {/* Explanation Footer */}
-      {diagram.explanation && (
-        <div className="border-t border-gray-700 p-4 bg-gray-800/20">
-          <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-            📝 Architecture Explanation
-          </h4>
-          <p className="text-sm text-gray-400 leading-relaxed">
-            {diagram.explanation}
-          </p>
-          
-          {/* Additional metadata */}
-          {diagram.analysis && (
-            <details className="mt-3">
-              <summary className="text-xs text-blue-400 cursor-pointer hover:text-blue-300">
-                View Technical Analysis
-              </summary>
-              <div className="mt-2 p-3 bg-gray-900/50 rounded border border-gray-700 text-xs">
-                <pre className="text-green-400 whitespace-pre-wrap">
-                  {JSON.stringify(diagram.analysis, null, 2)}
-                </pre>
-              </div>
-            </details>
-          )}
-        </div>
-      )}
+      
     </motion.div>
   );
 }
