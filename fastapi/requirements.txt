@@ -16,4 +16,9 @@ langchain-core
 langchain-google-genai
 
 # Additional dependencies for enhanced functionality
-aiofiles
+aiofiles==0.8.0
+
+# PlantUML encoding
+requests==2.31.0
+six==1.16.0
+plantuml==0.3.0

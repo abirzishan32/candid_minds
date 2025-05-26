@@ -8,6 +8,7 @@ from typing import Optional
 
 # Import the AI animation router
 from ai_animation.route import router as ai_animation_router
+from system_design.route import router as system_design_router
 
 # Load environment variables
 load_dotenv()
@@ -37,17 +38,21 @@ app.mount("/media", StaticFiles(directory=str(MEDIA_DIR.absolute())), name="medi
 
 # Include routers
 app.include_router(ai_animation_router)
+app.include_router(system_design_router)
 
 @app.get("/")
 def read_root():
     """Root endpoint with welcome message"""
     return {
-        "message": "Welcome to Interview AI Platform 🚀",
-        "version": "1.0.0",
+        "message": "AI Content Generation Platform",
+        "services": [
+            "AI Animation Generator",
+            "System Design Generator"
+        ],
         "features": [
-            "AI Animation Generation",
-            "System Design Visualization",
-            "Interview Practice"
+            "LangGraph workflows",
+            "Streaming progress updates",
+            "Interactive visualizations"
         ]
     }
 
@@ -56,7 +61,10 @@ def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "service": "Interview AI Platform",
+         "services": {
+            "ai_animation": "active",
+            "system_design": "active"
+        },
         "media_directory": str(MEDIA_DIR.absolute())
     }
 
@@ -73,32 +81,35 @@ async def test_media():
     }
 
 # Legacy endpoint for backward compatibility
-@app.post("/generate-animation")
-async def generate_animation_legacy(request: dict):
-    """
-    Legacy endpoint for animation generation (redirects to new endpoint)
-    This maintains backward compatibility with existing frontend code
-    """
-    try:
-        # Import here to avoid circular imports
-        from ai_animation.agent import AnimationAgent
+# @app.post("/generate-animation")
+# async def generate_animation_legacy(request: dict):
+#     """
+#     Legacy endpoint for animation generation (redirects to new endpoint)
+#     This maintains backward compatibility with existing frontend code
+#     """
+#     try:
+#         # Import here to avoid circular imports
+#         from ai_animation.agent import AnimationAgent
         
-        animation_agent = AnimationAgent(MEDIA_DIR)
+#         animation_agent = AnimationAgent(MEDIA_DIR)
         
-        if not request.get("prompt"):
-            raise HTTPException(status_code=400, detail="Prompt is required")
+#         if not request.get("prompt"):
+#             raise HTTPException(status_code=400, detail="Prompt is required")
         
-        result = animation_agent.create_animation(request["prompt"])
+#         result = animation_agent.create_animation(request["prompt"])
         
-        return {
-            "code": result["code"],
-            "explanation": result["explanation"],
-            "video_url": result["video_url"]  # This can now be None
-        }
+#         return {
+#             "code": result["code"],
+#             "explanation": result["explanation"],
+#             "video_url": result["video_url"]  # This can now be None
+#         }
         
-    except Exception as e:
-        print(f"Error in legacy endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error generating animation: {str(e)}")
+#     except Exception as e:
+#         print(f"Error in legacy endpoint: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error generating animation: {str(e)}")
+    
+
+
 
 @app.get("/media-info")
 async def media_info_legacy():
