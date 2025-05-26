@@ -99,10 +99,10 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.venv
-env/
+# Virtual Environments
+.venv/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
@@ -130,10 +130,10 @@ dmypy.json
 *.sqlite
 *.sqlite3
 
-# Media files (generated content)
+# Media files (generated content) - IMPORTANT: These should not be in version control
 media/
 uploads/
-static/
+static/user-uploads/
 temp/
 tmp/
 
@@ -146,7 +146,7 @@ models/
 *.pb
 checkpoints/
 
-# Manim specific
+# Manim specific - All Manim generated content
 media/videos/
 media/images/
 media/texts/
@@ -194,9 +194,6 @@ credentials/
 *.crt
 
 # Database
-*.db
-*.sqlite
-*.sqlite3
 database.db
 
 # Cache
@@ -221,3 +218,7 @@ yarn-error.log*
 config.ini
 settings.ini
 local_config.py
+
+# Test files
+test_output/
+test_media/
