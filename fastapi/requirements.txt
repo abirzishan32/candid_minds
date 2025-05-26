@@ -8,3 +8,12 @@ pydantic==2.5.0
 Pillow==9.4.0
 numpy==1.25.2
 scipy==1.11.4
+
+# LangGraph and LangChain dependencies
+langgraph
+langchain
+langchain-core
+langchain-google-genai
+
+# Additional dependencies for enhanced functionality
+aiofiles

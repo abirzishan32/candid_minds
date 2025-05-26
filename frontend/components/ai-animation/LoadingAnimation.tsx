@@ -23,21 +23,60 @@ interface DataStream {
   color: string;
 }
 
-export function LoadingAnimation() {
+interface LoadingAnimationProps {
+  progress?: number;
+  stage?: string;
+  stageDescription?: string;
+}
+
+export function LoadingAnimation({ 
+  progress = 0, 
+  stage = "starting", 
+  stageDescription = "Initializing..." 
+}: LoadingAnimationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
   const dataStreamsRef = useRef<DataStream[]>([]);
-  const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState(0); // 0: analyzing, 1: generating, 2: rendering
+  const [animationTime, setAnimationTime] = useState(0);
 
-  const phaseMessages = [
-    "Analyzing your concept...",
-    "Generating visualization code...",
-    "Rendering video frames..."
-  ];
+  // Map stages to phase indices and get appropriate messages
+  const getPhaseFromStage = (stage: string): number => {
+    switch (stage) {
+      case "starting":
+      case "analysis_complete":
+        return 0;
+      case "code_generated":
+      case "code_sanitized":
+        return 1;
+      case "render_complete":
+      default:
+        return 2;
+    }
+  };
 
-  const phaseIcons = ["🧠", "⚡", "🎬"];
+  const getPhaseMessages = (stage: string): string[] => {
+    switch (stage) {
+      case "starting":
+        return ["Initializing AI system...", "⚡", "Starting up..."];
+      case "analysis_complete":
+        return ["Analyzing your concept...", "🧠", "Understanding requirements..."];
+      case "code_generated":
+        return ["Generating visualization code...", "⚡", "Writing Manim code..."];
+      case "code_sanitized":
+        return ["Optimizing and validating...", "🔧", "Securing code execution..."];
+      case "render_complete":
+        return ["Rendering video frames...", "🎬", "Creating final animation..."];
+      default:
+        return ["Processing...", "⚙️", "Working on your request..."];
+    }
+  };
+
+  const phase = getPhaseFromStage(stage);
+  const [phaseMessage, phaseIcon, phaseSubtext] = getPhaseMessages(stage);
+
+  // Use provided stageDescription if available, otherwise fall back to our mapping
+  const displayMessage = stageDescription !== "Initializing..." ? stageDescription : phaseMessage;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -62,8 +101,8 @@ export function LoadingAnimation() {
       particlesRef.current = [];
       for (let i = 0; i < 50; i++) {
         particlesRef.current.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
+          x: Math.random() * canvas.width / window.devicePixelRatio,
+          y: Math.random() * canvas.height / window.devicePixelRatio,
           vx: (Math.random() - 0.5) * 2,
           vy: (Math.random() - 0.5) * 2,
           life: Math.random() * 100,
@@ -79,7 +118,7 @@ export function LoadingAnimation() {
       dataStreamsRef.current = [];
       for (let i = 0; i < 15; i++) {
         dataStreamsRef.current.push({
-          x: Math.random() * canvas.width,
+          x: Math.random() * canvas.width / window.devicePixelRatio,
           y: -50,
           speed: Math.random() * 3 + 2,
           width: Math.random() * 3 + 1,
@@ -92,41 +131,34 @@ export function LoadingAnimation() {
     initParticles();
     initDataStreams();
 
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        const newProgress = prev + Math.random() * 3;
-        if (newProgress >= 33 && newProgress < 66 && phase === 0) {
-          setPhase(1);
-        } else if (newProgress >= 66 && phase === 1) {
-          setPhase(2);
-        }
-        return Math.min(newProgress, 95);
-      });
-    }, 200);
-
     // Animation loop
     const animate = (time: number) => {
+      setAnimationTime(time);
+      
+      const rect = canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
 
       // Draw grid background
-      drawGrid(ctx, canvas.width, canvas.height, time);
+      drawGrid(ctx, width, height, time);
 
       // Draw particles
-      drawParticles(ctx, time);
+      drawParticles(ctx, time, width, height);
 
       // Draw data streams
-      drawDataStreams(ctx, canvas.height);
+      drawDataStreams(ctx, height);
 
       // Draw central hub
-      drawCentralHub(ctx, canvas.width / 2, canvas.height / 2, time);
+      drawCentralHub(ctx, width / 2, height / 2, time);
 
       // Draw neural connections
-      drawNeuralConnections(ctx, canvas.width, canvas.height, time);
+      drawNeuralConnections(ctx, width, height, time);
 
       // Draw video frame visualization
-      drawVideoFrames(ctx, canvas.width, canvas.height, time);
+      drawVideoFrames(ctx, width, height, time);
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -137,10 +169,9 @@ export function LoadingAnimation() {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-      clearInterval(progressInterval);
       window.removeEventListener('resize', setCanvasSize);
     };
-  }, [phase]);
+  }, []);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number) => {
     const gridSize = 30;
@@ -167,16 +198,17 @@ export function LoadingAnimation() {
     ctx.setLineDash([]);
   };
 
-  const drawParticles = (ctx: CanvasRenderingContext2D, time: number) => {
+  const drawParticles = (ctx: CanvasRenderingContext2D, time: number, width: number, height: number) => {
     particlesRef.current.forEach((particle, index) => {
       particle.life += 1;
       particle.x += particle.vx;
       particle.y += particle.vy;
 
-      if (particle.life >= particle.maxLife) {
+      // Boundary check and reset
+      if (particle.life >= particle.maxLife || particle.x < 0 || particle.x > width || particle.y < 0 || particle.y > height) {
         particle.life = 0;
-        particle.x = Math.random() * ctx.canvas.width;
-        particle.y = Math.random() * ctx.canvas.height;
+        particle.x = Math.random() * width;
+        particle.y = Math.random() * height;
       }
 
       const lifeRatio = particle.life / particle.maxLife;
@@ -203,7 +235,7 @@ export function LoadingAnimation() {
 
       if (stream.y > height + 50) {
         stream.y = -50;
-        stream.x = Math.random() * ctx.canvas.width;
+        stream.x = Math.random() * ctx.canvas.width / window.devicePixelRatio;
       }
 
       // Draw binary code stream
@@ -236,14 +268,15 @@ export function LoadingAnimation() {
     ctx.arc(centerX, centerY, pulseRadius * 2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Main hub
+    // Main hub with progress-based intensity
+    const intensity = Math.max(0.3, progress / 100);
     const mainGradient = ctx.createRadialGradient(
       centerX, centerY, 0,
       centerX, centerY, pulseRadius
     );
-    mainGradient.addColorStop(0, 'rgba(139, 92, 246, 0.8)');
-    mainGradient.addColorStop(0.7, 'rgba(59, 130, 246, 0.6)');
-    mainGradient.addColorStop(1, 'rgba(139, 92, 246, 0.2)');
+    mainGradient.addColorStop(0, `rgba(139, 92, 246, ${0.8 * intensity})`);
+    mainGradient.addColorStop(0.7, `rgba(59, 130, 246, ${0.6 * intensity})`);
+    mainGradient.addColorStop(1, `rgba(139, 92, 246, ${0.2 * intensity})`);
 
     ctx.fillStyle = mainGradient;
     ctx.beginPath();
@@ -251,17 +284,18 @@ export function LoadingAnimation() {
     ctx.fill();
 
     // Inner core
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * intensity})`;
     ctx.beginPath();
     ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
     ctx.fill();
 
-    // Rotating rings
+    // Rotating rings with progress-based speed
+    const speedMultiplier = 1 + (progress / 100);
     for (let i = 0; i < 3; i++) {
       const ringRadius = pulseRadius + 20 + i * 15;
-      const rotation = time * 0.001 * (i + 1) * (i % 2 === 0 ? 1 : -1);
+      const rotation = time * 0.001 * (i + 1) * (i % 2 === 0 ? 1 : -1) * speedMultiplier;
 
-      ctx.strokeStyle = `rgba(139, 92, 246, ${0.4 - i * 0.1})`;
+      ctx.strokeStyle = `rgba(139, 92, 246, ${(0.4 - i * 0.1) * intensity})`;
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 10]);
 
@@ -284,10 +318,12 @@ export function LoadingAnimation() {
       const x = centerX + Math.cos(angle) * radius;
       const y = centerY + Math.sin(angle) * radius;
 
-      // Draw connection to center
-      const opacity = 0.3 + Math.sin(time * 0.002 + i) * 0.2;
+      // Draw connection to center with progress-based opacity
+      const baseOpacity = 0.3 + Math.sin(time * 0.002 + i) * 0.2;
+      const progressOpacity = baseOpacity * Math.max(0.3, progress / 100);
+      
       const gradient = ctx.createLinearGradient(centerX, centerY, x, y);
-      gradient.addColorStop(0, `rgba(139, 92, 246, ${opacity})`);
+      gradient.addColorStop(0, `rgba(139, 92, 246, ${progressOpacity})`);
       gradient.addColorStop(1, `rgba(59, 130, 246, 0)`);
 
       ctx.strokeStyle = gradient;
@@ -300,8 +336,8 @@ export function LoadingAnimation() {
 
       // Draw node
       const nodeGradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
-      nodeGradient.addColorStop(0, 'rgba(139, 92, 246, 0.8)');
-      nodeGradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+      nodeGradient.addColorStop(0, `rgba(139, 92, 246, ${0.8 * Math.max(0.3, progress / 100)})`);
+      nodeGradient.addColorStop(1, `rgba(139, 92, 246, 0)`);
 
       ctx.fillStyle = nodeGradient;
       ctx.beginPath();
@@ -323,6 +359,7 @@ export function LoadingAnimation() {
       const x = startX + i * (frameWidth + 10);
       const y = startY + Math.sin(time * 0.003 + i * 0.5) * 5;
       
+      // Use actual progress instead of simulated
       const frameProgress = (progress / 100) * frameCount;
       const isActive = i < frameProgress;
       const opacity = isActive ? 0.8 : 0.3;
@@ -349,6 +386,35 @@ export function LoadingAnimation() {
     }
   };
 
+  // Map stage to status indicators
+  const getStatusSteps = (currentStage: string) => {
+    const steps = [
+      { name: 'Analysis', stages: ['starting', 'analysis_complete'] },
+      { name: 'Code Generation', stages: ['code_generated'] },
+      { name: 'Rendering', stages: ['code_sanitized', 'render_complete'] }
+    ];
+
+    return steps.map((step, index) => {
+      const isActive = step.stages.includes(currentStage);
+      const isCompleted = steps.slice(0, index).some(prevStep => 
+        prevStep.stages.some(stageInStep => {
+          const stageOrder = ['starting', 'analysis_complete', 'code_generated', 'code_sanitized', 'render_complete'];
+          const currentIndex = stageOrder.indexOf(currentStage);
+          const stepIndex = stageOrder.indexOf(stageInStep);
+          return stepIndex < currentIndex;
+        })
+      );
+      
+      return {
+        ...step,
+        isActive,
+        isCompleted
+      };
+    });
+  };
+
+  const statusSteps = getStatusSteps(stage);
+
   return (
     <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20">
       <canvas
@@ -367,21 +433,21 @@ export function LoadingAnimation() {
           {/* Header - Fixed height container */}
           <div className="text-center mb-6 h-[100px] flex flex-col justify-center">
             <motion.div
-              key={phase}
+              key={stage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl mb-2"
             >
-              {phaseIcons[phase]}
+              {phaseIcon}
             </motion.div>
             <div className="h-[32px] flex items-center justify-center">
               <motion.h3
-                key={phase}
+                key={stage}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent text-center leading-tight"
               >
-                {phaseMessages[phase]}
+                {displayMessage}
               </motion.h3>
             </div>
           </div>
@@ -390,13 +456,13 @@ export function LoadingAnimation() {
           <div className="mb-6 h-[60px] flex flex-col justify-between">
             <div className="flex justify-between text-xs text-gray-400 mb-2">
               <span>Progress</span>
-              <span>{Math.round(progress)}%</span>
+              <span>{Math.round(Math.max(0, progress))}%</span>
             </div>
             <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full relative"
                 initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
+                animate={{ width: `${Math.max(0, progress)}%` }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
               >
                 <div className="absolute inset-0 bg-white/20 animate-pulse" />
@@ -406,14 +472,14 @@ export function LoadingAnimation() {
 
           {/* Status indicators - Fixed height */}
           <div className="space-y-3 h-[120px] flex flex-col justify-between">
-            {['Code Generation', 'Frame Rendering', 'Video Compilation'].map((step, index) => (
+            {statusSteps.map((step, index) => (
               <motion.div
-                key={step}
+                key={step.name}
                 className="flex items-center gap-3 h-[32px]"
                 initial={{ opacity: 0.5 }}
                 animate={{ 
-                  opacity: phase >= index ? 1 : 0.5,
-                  x: phase === index ? [0, 5, 0] : 0
+                  opacity: step.isActive || step.isCompleted ? 1 : 0.5,
+                  x: step.isActive ? [0, 5, 0] : 0
                 }}
                 transition={{ 
                   x: { duration: 1, repeat: Infinity },
@@ -421,17 +487,17 @@ export function LoadingAnimation() {
                 }}
               >
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  phase > index ? 'bg-green-400' : 
-                  phase === index ? 'bg-purple-400 animate-pulse' : 
+                  step.isCompleted ? 'bg-green-400' : 
+                  step.isActive ? 'bg-purple-400 animate-pulse' : 
                   'bg-gray-600'
                 }`} />
                 <span className={`text-sm flex-1 ${
-                  phase >= index ? 'text-white' : 'text-gray-500'
+                  step.isActive || step.isCompleted ? 'text-white' : 'text-gray-500'
                 }`}>
-                  {step}
+                  {step.name}
                 </span>
                 <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                  {phase === index && (
+                  {step.isActive && (
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -452,21 +518,25 @@ export function LoadingAnimation() {
                   transition={{ duration: 2, repeat: Infinity }}
                   className="h-4 flex items-center"
                 >
-                  &gt; Processing neural pathways...
+                  &gt; {stage === 'starting' ? 'Initializing systems...' : 
+                       stage === 'analysis_complete' ? 'Neural analysis complete...' :
+                       stage === 'code_generated' ? 'Code generation successful...' :
+                       stage === 'code_sanitized' ? 'Security validation passed...' :
+                       'Rendering in progress...'}
                 </motion.div>
                 <motion.div
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                   className="h-4 flex items-center"
                 >
-                  &gt; Optimizing render pipeline...
+                  &gt; Progress: {Math.round(Math.max(0, progress))}% complete
                 </motion.div>
                 <motion.div
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity, delay: 1 }}
                   className="h-4 flex items-center"
                 >
-                  &gt; Synthesizing visual elements...
+                  &gt; {phaseSubtext}
                 </motion.div>
               </div>
             </div>
