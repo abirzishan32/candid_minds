@@ -390,7 +390,7 @@ export function LoadingAnimation({
   const getStatusSteps = (currentStage: string) => {
     const steps = [
       { name: 'Analysis', stages: ['starting', 'analysis_complete'] },
-      { name: 'Code Generation', stages: ['code_generated'] },
+      { name: 'Video Generation', stages: ['code_generated'] },
       { name: 'Rendering', stages: ['code_sanitized', 'render_complete'] }
     ];
 
