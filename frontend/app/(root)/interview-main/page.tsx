@@ -1,5 +1,5 @@
 import React from 'react'
-import Agent from "@/components/Agent";
+import VoiceAgent from "@/components/VoiceAgent";
 import { getCurrentUser, isAuthenticated } from "@/lib/actions/auth.action";
 import { redirect } from "next/navigation";
 
@@ -11,11 +11,10 @@ const Page = async () => {
     const user = await getCurrentUser();
 
     return (
-        <>
-            <h3>Interview Generation</h3>
+        <div className="min-h-screen">
+            <VoiceAgent userName={user?.name!} userId={user?.id} type="generate" />
+        </div>
+    );
+};
 
-            <Agent userName={user?.name!} userId={user?.id} type="generate" />
-        </>
-    )
-}
-export default Page
+export default Page;

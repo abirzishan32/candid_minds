@@ -1,8 +1,6 @@
 import { getInterviewById, canAccessModeratorInterview, hasUserCompletedInterview } from "@/lib/actions/general.action";
 import { redirect } from "next/navigation";
-import Image from "next/image";
-import DisplayTechIcons from "@/components/DisplayTechIcons";
-import Agent from "@/components/Agent";
+import VoiceAgent from "@/components/VoiceAgent";
 import { getCurrentUser, isAuthenticated } from "@/lib/actions/auth.action";
 
 const Page = async ({ params }: RouteParams) => {
@@ -33,26 +31,9 @@ const Page = async ({ params }: RouteParams) => {
     }
 
     return (
-        <>
-            <div className="flex flex-row gap-4 justify-between mb-6 bg-gradient-to-r from-gray-950 to-black p-4 rounded-xl border border-gray-800 shadow-md">
-                <div className="flex flex-row gap-4 items-center max-sm:flex-col">
-                    <div className="flex items-center">
-                        <div className="w-2 h-16 bg-primary rounded-full mr-3"></div>
-                        <h3 className="capitalize text-white text-xl font-bold">{interview.role} Interview</h3>
-                    </div>
-
-                    <DisplayTechIcons techStack={interview.techstack} />
-                </div>
-
-                <div className="flex flex-col items-end">
-                    <p className="bg-black text-primary px-4 py-2 rounded-lg h-fit capitalize border border-gray-800">{interview.type}</p>
-                    {interview.isModeratorInterview && interview.company && (
-                        <p className="text-sm text-gray-300 mt-2">{interview.company} Interview</p>
-                    )}
-                </div>
-            </div>
-
-            <Agent
+        <div className="min-h-screen">
+            {/* Header with interview info - embedded in VoiceAgent component now */}
+            <VoiceAgent
                 userName={user?.name || ''}
                 userId={user?.id}
                 interviewId={id}
@@ -60,7 +41,8 @@ const Page = async ({ params }: RouteParams) => {
                 questions={interview.questions}
                 saveResult={interview.isCompanyInterview || interview.isModeratorInterview}
             />
-        </>
-    )
-}
-export default Page
+        </div>
+    );
+};
+
+export default Page;
