@@ -1,21 +1,23 @@
 # Core FastAPI dependencies
-fastapi
-uvicorn[standard]
-python-multipart
-python-dotenv
-manim
-pydantic
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.1
+manim>=0.18.1
+pydantic>=2.8.0
 
 # LangGraph and LangChain dependencies
-langgraph
-langchain
-langchain-core
-langchain-google-genai
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-openai>=0.3.0
+openai>=1.40.0
 
 # Additional dependencies for enhanced functionality
-aiofiles
+aiofiles>=24.1.0
 
 # PlantUML encoding
-requests
-six
+requests>=2.32.0
+six>=1.16.0
 
