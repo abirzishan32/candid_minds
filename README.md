@@ -18,7 +18,6 @@
 
 ChakriGO is a comprehensive, next-generation platform that revolutionizes career development through cutting-edge AI technologies. From AI-powered mock interviews with real-time voice interaction to advanced anti-cheating skill assessments, our platform provides everything needed for successful career advancement in the modern tech industry.
 
-**🔗 Live Platform**: [chakrigo.taut0logy.tech](https://chakrigo.taut0logy.tech)
 
 ---
 
@@ -413,7 +412,6 @@ This project is licensed under the **MIT License** - see the LICENSE file for de
 
 ## 📞 Support & Contact
 
-- **Live Platform**: [chakrigo.taut0logy.tech](https://chakrigo.taut0logy.tech)
 - **Documentation**: [docs.chakrigo.taut0logy.tech](https://docs.chakrigo.taut0logy.tech)
 - **Issue Tracker**: [GitHub Issues](https://github.com/yourusername/chakrigo/issues)
 - **Community Discord**: [Join our Discord](https://discord.gg/chakrigo)
